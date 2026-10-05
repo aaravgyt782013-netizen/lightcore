@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import http from 'node:http';
 import { Client, GatewayIntentBits, Partials } from 'discord.js';
-import { handle } from './commands.js';
+import { handle, CATALOG } from './commands.js';
 
 const token = process.env.DISCORD_TOKEN;
 const port = Number(process.env.PORT || 3000);
@@ -41,14 +41,26 @@ client.on('interactionCreate', async (interaction) => {
 });
 
 function createMessageInteraction(message, commandName, args) {
-  const options = new Map();
-  options.getUser = () => null;
-  options.getString = () => args.join(' ') || null;
-  options.getInteger = () => {
-    const n = Number(args[0]);
-    return Number.isFinite(n) ? n : null;
+  const options = {
+    getUser: () => {
+      const token = args[0];
+      const id = token?.match(/^<@!?([0-9]+)>$/)?.[1] || (token?.match(/^\d{17,20}$/)?.[0] ?? null);
+      return id ? client.users.cache.get(id) || null : null;
+    },
+    getString: (_name, required = false) => {
+      const value = args.join(' ').trim();
+      if (required && !value) return null;
+      return value || null;
+    },
+    getInteger: (_name, required = false) => {
+      const n = Number(args[0]);
+      if (required && !Number.isFinite(n)) return null;
+      return Number.isFinite(n) ? n : null;
+    },
+    getBoolean: () => null,
+    getRole: () => null,
+    getChannel: () => null
   };
-  options.get = () => null;
 
   return {
     isChatInputCommand: () => true,
@@ -76,22 +88,10 @@ client.on('messageCreate', async (message) => {
   const raw = message.content.trim();
   if (!raw) return;
 
-  let commandText = null;
-
-  // Prefix mode: .command
-  if (raw.startsWith(prefix)) {
-    commandText = raw.slice(prefix.length).trim();
-  } else {
-    // No-prefix mode: command
-    commandText = raw;
-  }
-
+  const commandText = raw.startsWith(prefix) ? raw.slice(prefix.length).trim() : raw;
   const parts = commandText.split(/\s+/);
   const commandName = parts.shift()?.toLowerCase();
-  if (!commandName) return;
-
-  const { CATALOG } = await import('./commands.js');
-  if (!CATALOG.some(c => c.name === commandName)) return;
+  if (!commandName || !CATALOG.some(c => c.name === commandName)) return;
 
   try {
     await handle(createMessageInteraction(message, commandName, parts), client);
