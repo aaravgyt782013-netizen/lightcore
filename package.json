@@ -1,0 +1,17 @@
+{
+  "name": "lightcore",
+  "version": "4.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "deploy": "node src/deploy-commands.js"
+  },
+  "dependencies": {
+    "@discordjs/voice": "^0.19.0",
+    "better-sqlite3": "^12.4.1",
+    "discord.js": "^14.27.0",
+    "dotenv": "^17.2.2",
+    "ffmpeg-static": "^5.2.0"
+  }
+}
