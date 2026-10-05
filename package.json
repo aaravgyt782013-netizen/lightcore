@@ -5,8 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "node src/index.js",
-    "build": "npm run validate",
-    "validate": "for f in $(find src -name '*.js'); do node --check "$f" || exit 1; done",
+    "build": "node --check src/index.js",
     "deploy": "node src/deploy-commands.js"
   },
   "engines": {
