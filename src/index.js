@@ -40,11 +40,64 @@ client.on('interactionCreate', async (interaction) => {
   }
 });
 
+function createMessageInteraction(message, commandName, args) {
+  const options = new Map();
+  options.getUser = () => null;
+  options.getString = () => args.join(' ') || null;
+  options.getInteger = () => {
+    const n = Number(args[0]);
+    return Number.isFinite(n) ? n : null;
+  };
+  options.get = () => null;
+
+  return {
+    isChatInputCommand: () => true,
+    commandName,
+    user: message.author,
+    member: message.member,
+    memberPermissions: message.member?.permissions,
+    guild: message.guild,
+    channel: message.channel,
+    client,
+    options,
+    reply: async (payload) => {
+      const content = typeof payload === 'string' ? payload : payload?.content;
+      return message.reply(content || 'Command executed.');
+    },
+    followUp: async (payload) => message.reply(payload?.content || String(payload)),
+    replied: false,
+    deferred: false
+  };
+}
+
 client.on('messageCreate', async (message) => {
-  if (message.author.bot || !message.guild || !message.content.startsWith(prefix)) return;
-  const [command] = message.content.slice(prefix.length).trim().split(/\s+/);
-  if (command?.toLowerCase() === 'ping') {
-    await message.reply('✨ Pong! ' + client.ws.ping + 'ms');
+  if (message.author.bot || !message.guild) return;
+
+  const raw = message.content.trim();
+  if (!raw) return;
+
+  let commandText = null;
+
+  // Prefix mode: .command
+  if (raw.startsWith(prefix)) {
+    commandText = raw.slice(prefix.length).trim();
+  } else {
+    // No-prefix mode: command
+    commandText = raw;
+  }
+
+  const parts = commandText.split(/\s+/);
+  const commandName = parts.shift()?.toLowerCase();
+  if (!commandName) return;
+
+  const { CATALOG } = await import('./commands.js');
+  if (!CATALOG.some(c => c.name === commandName)) return;
+
+  try {
+    await handle(createMessageInteraction(message, commandName, parts), client);
+  } catch (error) {
+    console.error('Prefix/no-prefix command error:', error);
+    await message.reply('💥 Something went wrong while running that command.').catch(() => {});
   }
 });
 
