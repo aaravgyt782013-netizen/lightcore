@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/index.js",
     "build": "npm run validate",
-    "validate": "for f in \"$(find src -name '*.js')\"; do node --check \"$f\" || exit 1; done",
+    "validate": "for f in $(find src -name '*.js'); do node --check "$f" || exit 1; done",
     "deploy": "node src/deploy-commands.js"
   },
   "engines": {
