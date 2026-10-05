@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node src/deploy-commands.js && node src/index.js",
-    "build": "npm install --omit=dev && node --check src/index.js",
+    "start": "node src/index.js",
+    "build": "npm install --omit=dev && node --check src/index.js && node --check src/auto.js",
     "deploy": "node src/deploy-commands.js"
   },
   "engines": {
