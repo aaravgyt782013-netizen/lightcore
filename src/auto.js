@@ -27,6 +27,7 @@ const AUTO_REACTOR = {
 };
 
 import { getAutoresponders } from './server-config.js';
+import { cardMessage } from './ui.js';
 
 const COOLDOWN_MS = 3000;
 const responderCooldown = new Map();
@@ -54,7 +55,7 @@ export async function runAutoResponder(message) {
   const key = `${message.guildId}:${message.author.id}:${trigger}`;
   if (!allowed(responderCooldown, key)) return;
 
-  await message.reply(rules[trigger]).catch(() => {});
+  await message.reply(cardMessage('🤖 Auto Response',rules[trigger])).catch(() => {});
 }
 
 export async function runAutoReactor(message) {
