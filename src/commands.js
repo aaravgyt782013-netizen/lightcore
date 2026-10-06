@@ -1,6 +1,6 @@
 
 import {
-  SlashCommandBuilder, PermissionFlagsBits, ChannelType, ActionRowBuilder, ChannelSelectMenuBuilder,
+  SlashCommandBuilder, PermissionFlagsBits, ChannelType, ActionRowBuilder,
   StringSelectMenuBuilder, ChannelSelectMenuBuilder, ButtonBuilder, ButtonStyle, ContainerBuilder,
   TextDisplayBuilder, SeparatorBuilder, MessageFlags, EmbedBuilder
 } from 'discord.js';
