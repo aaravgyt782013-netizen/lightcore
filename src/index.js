@@ -153,6 +153,9 @@ function createMessageInteraction(message, commandName, args) {
       else if (commandName === 'autoresponder' && name === 'action') value = responderAction;
       else if (commandName === 'autoresponder' && name === 'trigger') value = responderTrigger;
       else if (commandName === 'autoresponder' && name === 'response') value = responderResponse;
+      else if (commandName === 'antinukeconfig' && name === 'action') value = args[0] || null;
+      else if (commandName === 'antinukeconfig' && name === 'value') value = args[1] || null;
+      else if ((commandName === 'antinukebypass' || commandName === 'antinukewhitelist') && name === 'action') value = args[1] || 'add';
       else value = args.join(' ').trim();
       if (required && !value) return null;
       return value || null;
