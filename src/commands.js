@@ -53,6 +53,67 @@ export const SLASH_REGISTERED = REGISTERED.slice(0, 100);
 const emoji = {utility:'🧰',moderation:'🛡️',administration:'⚙️',automod:'🤖',logging:'📜',welcome:'👋',tickets:'🎫',giveaways:'🎁',economy:'💰',levels:'⭐',fun:'🎉',games:'🎮',music:'🎵',owner:'👑',stats:'📊',server:'🏠',community:'🤝'};
 const descriptions = Object.fromEntries(REGISTERED.map(x => [x.name, ({userstats:'Detailed user activity statistics',serverstats:'Server-wide activity statistics',statleaderboard:'Top members by activity',counter:'Create a live Statbot-style counter',counters:'List live server counters',counterremove:'Remove a live counter',best:'Give a playful best-of title',worst:'Give a playful worst-at-something title',loved:'Give a playful loved title',hated:'Give a playful hated title'})[x.name] || 'Lightcore '+x.name+' command']));
 
+const commandPermissions = {
+  ban: PermissionFlagsBits.BanMembers, unban: PermissionFlagsBits.BanMembers,
+  kick: PermissionFlagsBits.KickMembers, timeout: PermissionFlagsBits.ModerateMembers,
+  untimeout: PermissionFlagsBits.ModerateMembers, warn: PermissionFlagsBits.ModerateMembers,
+  warnings: PermissionFlagsBits.ModerateMembers, clearwarnings: PermissionFlagsBits.ModerateMembers,
+  purge: PermissionFlagsBits.ManageMessages, slowmode: PermissionFlagsBits.ManageChannels,
+  lock: PermissionFlagsBits.ManageChannels, unlock: PermissionFlagsBits.ManageChannels,
+  nick: PermissionFlagsBits.ManageNicknames, rolecreate: PermissionFlagsBits.ManageRoles,
+  roledelete: PermissionFlagsBits.ManageRoles, roleadd: PermissionFlagsBits.ManageRoles,
+  roleremove: PermissionFlagsBits.ManageRoles, channelcreate: PermissionFlagsBits.ManageChannels,
+  channeldelete: PermissionFlagsBits.ManageChannels, setup: PermissionFlagsBits.ManageGuild,
+  automod: PermissionFlagsBits.ManageGuild, antispam: PermissionFlagsBits.ManageGuild,
+  antilink: PermissionFlagsBits.ManageGuild, filterword: PermissionFlagsBits.ManageGuild,
+  logging: PermissionFlagsBits.ManageGuild, logsetupauto: PermissionFlagsBits.ManageChannels,
+  logsetup: PermissionFlagsBits.ManageChannels, logsettings: PermissionFlagsBits.ManageGuild,
+  autoresponder: PermissionFlagsBits.ManageGuild, welcome: PermissionFlagsBits.ManageGuild,
+  goodbye: PermissionFlagsBits.ManageGuild, ticketsetup: PermissionFlagsBits.ManageGuild,
+  ticketcategory: PermissionFlagsBits.ManageGuild, ticketpanel: PermissionFlagsBits.ManageGuild,
+  ticketstaff: PermissionFlagsBits.ManageGuild, giveawaycreate: PermissionFlagsBits.ManageGuild,
+  giveawayend: PermissionFlagsBits.ManageGuild, giveawayreroll: PermissionFlagsBits.ManageGuild,
+  levelsetup: PermissionFlagsBits.ManageGuild, levelsettings: PermissionFlagsBits.ManageGuild,
+  levelreward: PermissionFlagsBits.ManageRoles, levelreset: PermissionFlagsBits.ManageGuild,
+  leveladd: PermissionFlagsBits.ManageGuild, levelremove: PermissionFlagsBits.ManageGuild,
+  levelrole: PermissionFlagsBits.ManageRoles, levelchannel: PermissionFlagsBits.ManageGuild,
+  levelmessage: PermissionFlagsBits.ManageGuild, xpboost: PermissionFlagsBits.ManageGuild,
+  xpreset: PermissionFlagsBits.ManageGuild, xpset: PermissionFlagsBits.ManageGuild,
+  xpadd: PermissionFlagsBits.ManageGuild, xpremove: PermissionFlagsBits.ManageGuild,
+  xpgive: PermissionFlagsBits.ManageGuild, levelgive: PermissionFlagsBits.ManageGuild,
+  premium: PermissionFlagsBits.Administrator, noprefix: PermissionFlagsBits.Administrator
+};
+
+export function getCommandPermission(name) { return commandPermissions[name] || null; }
+
+function permissionName(bit) {
+  const names = {
+    [PermissionFlagsBits.Administrator]:'Administrator', [PermissionFlagsBits.ManageGuild]:'Manage Server',
+    [PermissionFlagsBits.ManageRoles]:'Manage Roles', [PermissionFlagsBits.ManageChannels]:'Manage Channels',
+    [PermissionFlagsBits.ManageMessages]:'Manage Messages', [PermissionFlagsBits.BanMembers]:'Ban Members',
+    [PermissionFlagsBits.KickMembers]:'Kick Members', [PermissionFlagsBits.ModerateMembers]:'Moderate Members',
+    [PermissionFlagsBits.ManageNicknames]:'Manage Nicknames'
+  };
+  return names[bit] || 'Server permission';
+}
+
+export function getCommandUsage(name) {
+  const examples = {
+    levelsetup: '.levelsetup action:on', levelsettings: '.levelsettings action:message value:"🎉 {user} reached Level {level}!"',
+    levelreward: '.levelreward level:5 role:@VIP', rank: '.rank user:@Member',
+    giveawaycreate: '.giveawaycreate duration:1h prize:"VIP Rank" winners:1', giveawayend: '.giveawayend id:123',
+    giveawayreroll: '.giveawayreroll id:123', gay: '.gay user:@Member', simp: '.simp user:@Member',
+    howhot: '.howhot user:@Member', logsetupauto: '.logsetupauto'
+  };
+  return examples[name] || '.'+name+' [required options]';
+}
+
+export function commandUsagePayload(name, reason='Check the required options and try again.') {
+  const usage = getCommandUsage(name);
+  const permission = getCommandPermission(name);
+  return {title:'⚠️ Incorrect Command Usage',content:'**/'+name+'**\n\n'+reason+'\n\n**Usage**\n`'+usage+'`\n\n**Example**\n`'+usage+'`\n\n**Required permission:** '+(permission?'`'+permissionName(permission)+'`':'None')};
+}
+
 function userOption(b, name='user') {
   return b.addUserOption(o => o.setName(name).setDescription('Member').setRequired(true));
 }
@@ -65,6 +126,8 @@ function intOption(b, name, required=true, min=0, max=1000000) {
 
 export function makeCommand(name, category) {
   const b = new SlashCommandBuilder().setName(name).setDescription(descriptions[name]);
+  const requiredPermission = getCommandPermission(name);
+  if (requiredPermission) b.setDefaultMemberPermissions(requiredPermission);
   if (['ban','unban','kick','timeout','untimeout','warn','warnings','clearwarnings','nick'].includes(name)) userOption(b);
   if (['ban','kick','warn'].includes(name)) textOption(b,'reason',false);
   if (name === 'timeout') intOption(b,'minutes',true,1,40320);
@@ -174,9 +237,11 @@ async function moderate(i,name) {
 
 export async function handle(i,client) {
   const n=i.commandName;
+  const requiredPermission = getCommandPermission(n);
+  if (requiredPermission && i.guild && i.user.id!==ownerId && !i.memberPermissions?.has(requiredPermission)) return styledReply(i, commandUsagePayload(n, 'You do not have the permission required to use this command.'));
   if(n==='rank'||n==='level'){if(!guildOnly(i))return;const u=i.options.getUser?.('user')||i.user;const p=levelProgress(i.guild.id,u.id);return styledReply(i,{title:'⭐ Level',content:'**'+u.tag+'**\nLevel: **'+p.level+'**\nXP: **'+p.xp+' / '+p.needed+'**\nProgress: **'+p.percent+'%**'});}
   if(n==='levelsetup'||n==='levelsettings'){if(!guildOnly(i))return;const action=i.options.getString('action')||'status';const value=i.options.getString('value');if(action==='on'||action==='off')updateLevelConfig(i.guild.id,{enabled:action==='on'?1:0});else if(action==='message'&&value)updateLevelConfig(i.guild.id,{levelup_message:value});else if(action==='cooldown'&&value)updateLevelConfig(i.guild.id,{cooldown:Math.max(5,Number(value)||60)});else if(action==='channel')updateLevelConfig(i.guild.id,{levelup_channel_id:i.channel.id});const c=getLevelConfig(i.guild.id);return styledReply(i,{title:'⭐ Leveling Settings',content:'Enabled: **'+(c.enabled?'Yes':'No')+'**\nXP: **'+c.xp_min+'-'+c.xp_max+'**\nCooldown: **'+c.cooldown+'s**\nLevel-up channel: '+(c.levelup_channel_id?'<#'+c.levelup_channel_id+'>':'Current channel')+'\nMessage: '+c.levelup_message});}
-  if(n==='levelreward'){if(!guildOnly(i))return;const lvl=i.options.getInteger('level');const role=i.options.getRole?.('role');if(role){addLevelReward(i.guild.id,lvl,role.id);return styledReply(i,'🏆 Level **'+lvl+'** reward set to '+role+'.');}removeLevelReward(i.guild.id,lvl);return styledReply(i,'🗑️ Level **'+lvl+'** reward removed.');}
+  if(n==='levelreward'){if(!guildOnly(i))return;const lvl=i.options.getInteger('level');const role=i.options.getRole?.('role');if(role){const me=i.guild.members.me;if(me&&role.position>=me.roles.highest.position)return styledReply(i,commandUsagePayload(n,'I cannot assign that role because it is above my highest role.'));addLevelReward(i.guild.id,lvl,role.id);return styledReply(i,{title:'🏆 Level Reward Saved',content:'Level **'+lvl+'** → '+role+'\n\nMembers reaching this level will receive the role automatically.'});}removeLevelReward(i.guild.id,lvl);return styledReply(i,'🗑️ Level **'+lvl+'** reward removed.');}
   if(n==='giveawaycreate'){if(!guildOnly(i))return;const d=i.options.getString('duration');const prize=i.options.getString('prize');const winners=i.options.getInteger('winners');const channel=i.options.getChannel?.('channel')||i.channel;const m=/^(\d+)\s*(s|m|h|d|w)$/i.exec(d||'');if(!m)return styledReply(i,'❌ Duration: 30s, 10m, 2h, 1d, or 1w.');const mult={s:1000,m:60000,h:3600000,d:86400000,w:604800000}[m[2].toLowerCase()];const g=createGiveaway(i.guild.id,channel.id,i.user.id,prize,winners,Date.now()+Number(m[1])*mult);const msg=await channel.send(giveawayPayload(g));setGiveawayMessage(g.id,msg.id);return styledReply(i,'🎁 Giveaway created in '+channel+' — ID: `'+g.id+'`');}
   if(n==='giveawayend'){if(!guildOnly(i))return;const g=getGiveaway(i.options.getString('id'));if(!g||g.guild_id!==i.guild.id)return styledReply(i,'❌ Giveaway not found.');const result=endGiveaway(g.id);if(!result)return styledReply(i,'❌ Giveaway already ended.');const ch=i.guild.channels.cache.get(g.channel_id);if(ch?.isTextBased()&&g.message_id)await ch.messages.fetch(g.message_id).then(m=>m.edit(giveawayPayload(result,true))).catch(()=>{});return styledReply(i,'🎉 Giveaway ended. Winners: '+(result.winnersPicked.map(x=>'<@'+x+'>').join(', ')||'none'));}
   if(['gay','simp','howhot'].includes(n)){const u=i.options.getUser?.('user')||i.user;const score=Math.floor(Math.random()*101);const labels={gay:'🌈 Gay Meter',simp:'💖 Simp Meter',howhot:'🎲 Random Rating'};return styledReply(i,{title:labels[n],content:'For fun only — random joke score, not a real measurement.\n\n'+u+' → **'+score+'%**'});}
