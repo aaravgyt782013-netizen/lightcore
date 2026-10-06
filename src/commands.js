@@ -473,7 +473,7 @@ export function buildHelpPayload(selected='overview') {
         '# '+(emoji[safe]||'🔹')+' '+safe.toUpperCase(),
         '> '+groups[safe].length+' commands in this module',
         '',
-        ...groups[safe].map(n => '**.'+n+'**\\n> '+(helpUses[n] || categoryFallback[safe] || getUse(n)))
+        ...groups[safe].map(n => '**.'+n+'**\n> '+(helpUses[n] || categoryFallback[safe] || getUse(n)))
       ];
 
   const menu = new StringSelectMenuBuilder()
@@ -485,7 +485,7 @@ export function buildHelpPayload(selected='overview') {
     );
 
   const box = new ContainerBuilder()
-    .addTextDisplayComponents(new TextDisplayBuilder().setContent(lines.join('\\n')))
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent(lines.join('\n')))
     .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
     .addActionRowComponents(new ActionRowBuilder().addComponents(menu))
     .addActionRowComponents(new ActionRowBuilder().addComponents(
