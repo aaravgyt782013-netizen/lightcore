@@ -171,59 +171,56 @@ client.on('interactionCreate', async (interaction) => {
 });
 
 function createMessageInteraction(message, commandName, args) {
-  const getChannelArg = () => {
-    const token = args.find(x => /^<#\d{17,20}>$/.test(x)) || args.find(x => /^\d{17,20}$/.test(x));
-    const id = token?.match(/^<#(\d+)>$/)?.[1] || token?.match(/^\d{17,20}$/)?.[0] || null;
-    return id ? message.guild?.channels.cache.get(id) || null : null;
+  const tokens = [...args];
+  const keyed = {};
+  for (let x = 0; x < tokens.length; x++) {
+    const m = tokens[x].match(/^([a-zA-Z][a-zA-Z0-9_-]*):(.+)$/);
+    if (m) keyed[m[1].toLowerCase()] = m[2];
+  }
+  const positional = tokens.filter(x => !/^[a-zA-Z][a-zA-Z0-9_-]*:.+$/.test(x));
+  const cleanMention = v => String(v||'').match(/^<@!?([0-9]+)>$/)?.[1] || String(v||'').match(/^<@&([0-9]+)>$/)?.[1] || String(v||'').match(/^<#([0-9]+)>$/)?.[1] || (String(v||'').match(/^\d{17,20}$/)?.[0] || null);
+  const resolveUser = v => { const id=cleanMention(v); return id ? client.users.cache.get(id) || null : null; };
+  const resolveMember = v => { const u=resolveUser(v); return u ? message.guild?.members.cache.get(u.id) || null : null; };
+  const resolveRole = v => { const id=cleanMention(v); return id ? message.guild?.roles.cache.get(id) || null : null; };
+  const resolveChannel = v => { const id=cleanMention(v); return id ? message.guild?.channels.cache.get(id) || null : null; };
+  const getChannelArg = name => resolveChannel(keyed[name]) || message.guild?.channels.cache.get(message.channel.id) || null;
+  const textValue = (name, fallback='') => {
+    if (keyed[name] != null) return keyed[name];
+    if (name === 'reason') return positional.join(' ').trim() || fallback;
+    if (['message','response','prize','song','text','question'].includes(name)) return positional.join(' ').trim() || fallback;
+    return positional[0] ?? fallback;
   };
-  const welcomeChannel = commandName === 'welcome' ? getChannelArg() : null;
-  const welcomeMessage = commandName === 'welcome'
-    ? args.filter(x => !/^<#\d{17,20}>$/.test(x) && !/^\d{17,20}$/.test(x)).join(' ').trim()
-    : null;
-  const responderAction = commandName === 'autoresponder' ? args[0]?.toLowerCase() || null : null;
-  const responderTrigger = commandName === 'autoresponder' ? args[1] || null : null;
-  const responderResponse = commandName === 'autoresponder' ? args.slice(2).join(' ').trim() || null : null;
-
+  const userValue = (name='user', index=0) => resolveUser(keyed[name]) || resolveUser(positional[index]);
+  const intValue = (name='amount', index=0) => {
+    const n=Number(keyed[name] ?? positional[index]);
+    return Number.isFinite(n) ? n : null;
+  };
   const options = {
-    getSubcommand: (_required = false) => {
-      if (commandName === 'premium' || commandName === 'noprefix') return args[0]?.toLowerCase() || null;
-      return null;
-    },
-    getUser: () => {
-      const token = (commandName === 'premium' || commandName === 'noprefix') ? args[1] : args[0];
-      const id = token?.match(/^<@!?([0-9]+)>$/)?.[1] || token?.match(/^\d{17,20}$/)?.[0] || null;
-      return id ? client.users.cache.get(id) || null : null;
-    },
-    getString: (name, required = false) => {
-      let value = null;
-      if (commandName === 'premium' || commandName === 'noprefix') value = args.slice(1).join(' ').trim();
-      else if (commandName === 'welcome' && name === 'message') value = welcomeMessage;
-      else if (commandName === 'autoresponder' && name === 'action') value = responderAction;
-      else if (commandName === 'autoresponder' && name === 'trigger') value = responderTrigger;
-      else if (commandName === 'autoresponder' && name === 'response') value = responderResponse;
-      else if (commandName === 'antinukeconfig' && name === 'action') value = args[0] || null;
-      else if (commandName === 'antinukeconfig' && name === 'value') value = args[1] || null;
-      else if ((commandName === 'antinukebypass' || commandName === 'antinukewhitelist') && name === 'action') value = args[1] || 'add';
-      else value = args.join(' ').trim();
+    getSubcommand: () => (commandName === 'premium' || commandName === 'noprefix') ? (positional[0]?.toLowerCase() || null) : null,
+    getUser: name => userValue(name || 'user', (commandName === 'premium' || commandName === 'noprefix') ? 1 : 0),
+    getMember: name => resolveMember(keyed[name || 'user']) || resolveMember(positional[0]),
+    getString: (name, required=false) => {
+      let value;
+      if (commandName === 'premium' || commandName === 'noprefix') value = keyed[name] ?? (name === 'days' ? positional[2] : positional.slice(1).join(' '));
+      else if (commandName === 'antinukeconfig') value = keyed[name] ?? (name === 'action' ? positional[0] : positional[1]);
+      else if (commandName === 'antinukebypass' || commandName === 'antinukewhitelist') value = keyed[name] ?? (name === 'action' ? positional[1] : positional[0]);
+      else value = textValue(name);
       if (required && !value) return null;
       return value || null;
     },
-    getInteger: (_name, required = false) => {
-      const value = (commandName === 'premium' || commandName === 'noprefix') ? args[2] : args[0];
-      const n = Number(value);
-      if (required && !Number.isFinite(n)) return null;
-      return Number.isFinite(n) ? n : null;
+    getInteger: (name, required=false) => {
+      const value = intValue(name, (commandName === 'premium' || commandName === 'noprefix') ? 2 : (commandName === 'giveawaycreate' ? (name === 'winners' ? 1 : 0) : (commandName === 'giveawayend' ? 0 : 0)));
+      if (required && !Number.isFinite(value)) return null;
+      return value;
     },
-    getBoolean: () => null,
-    getRole: () => null,
-    getChannel: (name) => name === 'channel' ? welcomeChannel : null
+    getBoolean: name => ['true','yes','on','1'].includes(String(keyed[name]||positional[0]||'').toLowerCase()),
+    getRole: name => resolveRole(keyed[name || 'role']) || resolveRole(positional[1]) || resolveRole(positional[0]),
+    getChannel: name => getChannelArg(name || 'channel')
   };
   return {
     isChatInputCommand: () => true, commandName, user: message.author, member: message.member,
-    memberPermissions: message.member?.permissions, guild: message.guild, channel: message.channel,
-    client, options,
-    reply: async (payload) => message.reply(typeof payload === 'string' ? payload : payload),
-    followUp: async (payload) => message.reply(payload),
+    memberPermissions: message.member?.permissions, guild: message.guild, channel: message.channel, client, options,
+    reply: async payload => message.reply(payload), followUp: async payload => message.reply(payload),
     replied: false, deferred: false
   };
 }
