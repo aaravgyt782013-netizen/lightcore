@@ -109,7 +109,7 @@ function buildHelpPayload(selectedCategory = 'overview') {
       title,
       '',
       names.length
-        ? names.map(name => `• **/${name}** — ${commandDescription(name)}`).join('\\n')
+        ? names.map(name => `• **/${name}** — ${commandDescription(name)}`).join('\n')
         : 'No commands are listed in this category.'
     ];
   }
@@ -134,7 +134,7 @@ function buildHelpPayload(selectedCategory = 'overview') {
   const container = new ContainerBuilder()
     .setAccentColor(0x5865F2);
 
-  for (const chunk of lines.join('\\n').match(/.{1,3800}(?:\\n|$)/gs) || [lines.join('\\n')]) {
+  for (const chunk of lines.join('\n').match(/.{1,3800}(?:\\n|$)/gs) || [lines.join('\n')]) {
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(chunk));
   }
   container.addActionRowComponents(new ActionRowBuilder().addComponents(select));
@@ -230,7 +230,7 @@ async function handle(interaction, client) {
         const expiry = r.expires_at ? '<t:' + Math.floor(r.expires_at / 1000) + ':R>' : '**Lifetime**';
         return '• **' + r.scope + '** \\`' + r.scope_id + '\\` — ' + expiry;
       });
-      return interaction.reply('⭐ **Premium grants**\\n' + lines.join('\\n'));
+      return interaction.reply('⭐ **Premium grants**\\n' + lines.join('\n'));
     }
 
     if (sub === 'grant') {
