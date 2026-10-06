@@ -12,6 +12,8 @@ import { getUserStats, getGuildStats, getTopStats, addCounter, removeCounter, li
 import { getAntiNukeStatus, configureAntiNuke, resetAntiNuke, changeAntiNukeBypass, antiNukeStatusText, antiNukeConfigText, antiNukeBypassText, antiNukeWhitelistText } from './antinuke.js';
 import { setupLogChannels, getSecurityChannelNames, getLogCategoryName } from './security-setup.js';
 import { logModerationAction } from './modlogs.js';
+import { getLevelConfig, updateLevelConfig, levelProgress, addLevelReward, removeLevelReward } from './leveling.js';
+import { createGiveaway, getGiveaway, endGiveaway, giveawayPayload, setGiveawayMessage } from './giveaways.js';
 import { getTicketConfig, updateTicketConfig, addTicketCategory, removeTicketCategory, createTicketRecord, getTicketRecord, closeTicketRecord, claimTicket, listTicketRecords } from './tickets.js';
 
 const ownerId = process.env.OWNER_ID || '1244215702345482301';
@@ -72,7 +74,7 @@ export function makeCommand(name, category) {
   if (['say','announce','choose','rate','ship'].includes(name)) textOption(b,'text');
   if (name === 'remind') { textOption(b,'duration'); textOption(b,'message'); }
   if (name === 'timer') textOption(b,'duration');
-  if (['userinfo','avatar','banner','level','best','worst','loved','hated','userstats','statleaderboard','topchatters','topvoice','topcommands','topreactions','firstseen','lastseen'].includes(name)) userOption(b);
+  if (['userinfo','avatar','banner','level','rank','best','worst','loved','hated','userstats','statleaderboard','topchatters','topvoice','topcommands','topreactions','firstseen','lastseen'].includes(name)) userOption(b);
   if (name === 'timestamp') textOption(b,'date');
   if (name === 'counter') { b.addStringOption(o=>o.setName('type').setDescription('Counter type').setRequired(true).addChoices({name:'Members',value:'members'},{name:'Humans',value:'humans'},{name:'Bots',value:'bots'},{name:'Channels',value:'channels'},{name:'Roles',value:'roles'})); b.addChannelOption(o=>o.setName('channel').setDescription('Voice channel to rename').setRequired(true)); b.addStringOption(o=>o.setName('template').setDescription('Channel name template; {value} is replaced').setRequired(false)); }
   if (name === 'counterremove') b.addChannelOption(o=>o.setName('channel').setDescription('Counter channel').setRequired(true));
@@ -86,6 +88,11 @@ export function makeCommand(name, category) {
   if (name === 'channelcreate') { textOption(b,'name'); b.addStringOption(o=>o.setName('type').setDescription('Channel type').addChoices({name:'Text',value:'text'},{name:'Voice',value:'voice'})); }
   if (name === 'channeldelete') b.addChannelOption(o=>o.setName('channel').setDescription('Channel').setRequired(true));
   if (name === 'poll') { textOption(b,'question'); textOption(b,'options'); }
+  if (['levelsetup','levelsettings'].includes(name)) { textOption(b,'action',false); textOption(b,'value',false); }
+  if (name === 'levelreward') { intOption(b,'level',true,1,1000); b.addRoleOption(o=>o.setName('role').setDescription('Reward role').setRequired(false)); }
+  if (name === 'giveawaycreate') { textOption(b,'duration'); textOption(b,'prize'); intOption(b,'winners',true,1,50); b.addChannelOption(o=>o.setName('channel').setDescription('Giveaway channel').setRequired(false)); }
+  if (['giveawayend','giveawayreroll'].includes(name)) textOption(b,'id');
+  if (['gay','simp','howhot'].includes(name)) userOption(b,'user');
   if (name === 'welcome') { textOption(b,'message'); b.addChannelOption(o=>o.setName('channel').setDescription('Welcome channel').setRequired(true)); }
   if (name === 'goodbye') { b.addChannelOption(o=>o.setName('channel').setDescription('Goodbye channel').setRequired(true)); }
   if (name === 'autoresponder') { b.addStringOption(o=>o.setName('action').setDescription('Action').setRequired(true).addChoices({name:'Add or update',value:'add'},{name:'Remove',value:'remove'},{name:'List',value:'list'})); textOption(b,'trigger',false); textOption(b,'response',false); }
@@ -167,6 +174,12 @@ async function moderate(i,name) {
 
 export async function handle(i,client) {
   const n=i.commandName;
+  if(n==='rank'||n==='level'){if(!guildOnly(i))return;const u=i.options.getUser?.('user')||i.user;const p=levelProgress(i.guild.id,u.id);return styledReply(i,{title:'⭐ Level',content:'**'+u.tag+'**\nLevel: **'+p.level+'**\nXP: **'+p.xp+' / '+p.needed+'**\nProgress: **'+p.percent+'%**'});}
+  if(n==='levelsetup'||n==='levelsettings'){if(!guildOnly(i))return;const action=i.options.getString('action')||'status';const value=i.options.getString('value');if(action==='on'||action==='off')updateLevelConfig(i.guild.id,{enabled:action==='on'?1:0});else if(action==='message'&&value)updateLevelConfig(i.guild.id,{levelup_message:value});else if(action==='cooldown'&&value)updateLevelConfig(i.guild.id,{cooldown:Math.max(5,Number(value)||60)});else if(action==='channel')updateLevelConfig(i.guild.id,{levelup_channel_id:i.channel.id});const c=getLevelConfig(i.guild.id);return styledReply(i,{title:'⭐ Leveling Settings',content:'Enabled: **'+(c.enabled?'Yes':'No')+'**\nXP: **'+c.xp_min+'-'+c.xp_max+'**\nCooldown: **'+c.cooldown+'s**\nLevel-up channel: '+(c.levelup_channel_id?'<#'+c.levelup_channel_id+'>':'Current channel')+'\nMessage: '+c.levelup_message});}
+  if(n==='levelreward'){if(!guildOnly(i))return;const lvl=i.options.getInteger('level');const role=i.options.getRole?.('role');if(role){addLevelReward(i.guild.id,lvl,role.id);return styledReply(i,'🏆 Level **'+lvl+'** reward set to '+role+'.');}removeLevelReward(i.guild.id,lvl);return styledReply(i,'🗑️ Level **'+lvl+'** reward removed.');}
+  if(n==='giveawaycreate'){if(!guildOnly(i))return;const d=i.options.getString('duration');const prize=i.options.getString('prize');const winners=i.options.getInteger('winners');const channel=i.options.getChannel?.('channel')||i.channel;const m=/^(\d+)\s*(s|m|h|d|w)$/i.exec(d||'');if(!m)return styledReply(i,'❌ Duration: 30s, 10m, 2h, 1d, or 1w.');const mult={s:1000,m:60000,h:3600000,d:86400000,w:604800000}[m[2].toLowerCase()];const g=createGiveaway(i.guild.id,channel.id,i.user.id,prize,winners,Date.now()+Number(m[1])*mult);const msg=await channel.send(giveawayPayload(g));setGiveawayMessage(g.id,msg.id);return styledReply(i,'🎁 Giveaway created in '+channel+' — ID: `'+g.id+'`');}
+  if(n==='giveawayend'){if(!guildOnly(i))return;const g=getGiveaway(i.options.getString('id'));if(!g||g.guild_id!==i.guild.id)return styledReply(i,'❌ Giveaway not found.');const result=endGiveaway(g.id);if(!result)return styledReply(i,'❌ Giveaway already ended.');const ch=i.guild.channels.cache.get(g.channel_id);if(ch?.isTextBased()&&g.message_id)await ch.messages.fetch(g.message_id).then(m=>m.edit(giveawayPayload(result,true))).catch(()=>{});return styledReply(i,'🎉 Giveaway ended. Winners: '+(result.winnersPicked.map(x=>'<@'+x+'>').join(', ')||'none'));}
+  if(['gay','simp','howhot'].includes(n)){const u=i.options.getUser?.('user')||i.user;const score=Math.floor(Math.random()*101);const labels={gay:'🌈 Gay Meter',simp:'💖 Simp Meter',howhot:'🎲 Random Rating'};return styledReply(i,{title:labels[n],content:'For fun only — random joke score, not a real measurement.\n\n'+u+' → **'+score+'%**'});}
   if(n==='help')return styledReply(i, buildHelpPayload());
   if(n==='logsetupauto'){if(!guildOnly(i))return;const created=await setupLogChannels(i.guild);return styledReply(i,{title:'📜 LC logs — Automatic Setup',content:created.message+'\\n\\n**Category:** `'+getLogCategoryName()+'`\\n\\n**Created logging channels:**\\n'+getSecurityChannelNames().map(x=>'• #'+x).join('\\n')+'\\n\\n**Required bot permissions:**\\n• Manage Channels\\n• View Audit Log\\n• Manage Webhooks'});}
   if(n==='ping')return styledReply(i, '🏓 Pong! '+client.ws.ping+'ms');
