@@ -10,6 +10,7 @@ const token = process.env.DISCORD_TOKEN;
 const port = Number(process.env.PORT || 3000);
 const host = process.env.HOST || '0.0.0.0';
 const prefix = '.';
+const supportUrl = 'https://discord.gg/Ehmqr5drSz';
 
 if (!token) { console.error('DISCORD_TOKEN is missing.'); process.exit(1); }
 
@@ -39,7 +40,7 @@ client.on('guildMemberAdd', async (member) => {
 });
 
 client.on('guildDelete', async (guild) => {
-  const support = process.env.SUPPORT_URL || 'our support server';
+  const support = process.env.SUPPORT_URL || supportUrl;
   let target = null;
   try { target = await client.users.fetch(guild.ownerId); } catch {}
   if (!target) {
@@ -70,6 +71,10 @@ client.on('interactionCreate', async (interaction) => {
 });
 
 function createMessageInteraction(message, commandName, args) {
+  const channelFromToken = (token) => {
+    const id = token?.match(/^<#(\d{17,20})>$/)?.[1] || token?.match(/^\d{17,20}$/)?.[0];
+    return id ? message.guild.channels.cache.get(id) || null : null;
+  };
   const options = {
     getSubcommand: (_required = false) => {
       if (commandName === 'premium' || commandName === 'noprefix') return args[0]?.toLowerCase() || null;
@@ -80,20 +85,35 @@ function createMessageInteraction(message, commandName, args) {
       const id = token?.match(/^<@!?([0-9]+)>$/)?.[1] || token?.match(/^\d{17,20}$/)?.[0] || null;
       return id ? client.users.cache.get(id) || null : null;
     },
-    getString: (_name, required = false) => {
-      const value = (commandName === 'premium' || commandName === 'noprefix')
-        ? args.slice(1).join(' ').trim()
-        : args.join(' ').trim();
+    getString: (name, required = false) => {
+      let value = null;
+      if (commandName === 'premium' || commandName === 'noprefix') {
+        if (name === 'days') value = args[2] || null;
+        else value = args.slice(1).join(' ').trim() || null;
+      } else if (commandName === 'welcome') {
+        if (name === 'message') value = args.slice(1).join(' ').trim() || null;
+      } else if (commandName === 'autoresponder') {
+        const action = args[0]?.toLowerCase();
+        if (name === 'action') value = action || null;
+        else if (name === 'trigger') value = action === 'add' || action === 'remove' ? args[1] || null : null;
+        else if (name === 'response') value = action === 'add' ? args.slice(2).join(' ').trim() || null : null;
+      } else {
+        value = args.join(' ').trim() || null;
+      }
       if (required && !value) return null;
-      return value || null;
+      return value;
     },
-    getInteger: (_name, required = false) => {
-      const value = (commandName === 'premium' || commandName === 'noprefix') ? args[2] : args[0];
+    getInteger: (name, required = false) => {
+      let value = null;
+      if (commandName === 'premium' || commandName === 'noprefix') value = name === 'days' ? args[2] : args[0];
+      else value = args[0];
       const n = Number(value);
       if (required && !Number.isFinite(n)) return null;
       return Number.isFinite(n) ? n : null;
     },
-    getBoolean: () => null, getRole: () => null, getChannel: () => null
+    getBoolean: () => null,
+    getRole: () => null,
+    getChannel: (name) => name === 'channel' && commandName === 'welcome' ? channelFromToken(args[0]) : null
   };
   return {
     isChatInputCommand: () => true, commandName, user: message.author, member: message.member,
