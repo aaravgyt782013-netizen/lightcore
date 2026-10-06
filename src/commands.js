@@ -1,7 +1,7 @@
 
 import {
   SlashCommandBuilder, PermissionFlagsBits, ChannelType, ActionRowBuilder, ChannelSelectMenuBuilder,
-  StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, ContainerBuilder,
+  StringSelectMenuBuilder, ChannelSelectMenuBuilder, ButtonBuilder, ButtonStyle, ContainerBuilder,
   TextDisplayBuilder, SeparatorBuilder, MessageFlags, EmbedBuilder
 } from 'discord.js';
 import { styledReply, styledFollowUp, styledEditReply } from './ui.js';
@@ -498,7 +498,7 @@ export function buildHelpPayload(selected='overview') {
 
 export async function handleCategoryDeleteInteraction(i,client) {
   if(!i.isButton()&&!i.isStringSelectMenu())return false;
-  if(i.customId==='categorydelete:select' && i.isStringSelectMenu()){
+  if(i.customId==='categorydelete:select' && (i.isStringSelectMenu() || i.isChannelSelectMenu())){
     const id=i.values[0], category=i.guild?.channels.cache.get(id);
     if(!category || category.type!==ChannelType.GuildCategory)return styledReply(i,{content:'❌ That category no longer exists.',ephemeral:true});
     const channels=[...category.children.cache.values()];
@@ -592,7 +592,7 @@ export async function handle(i,client) {
     if(!guildOnly(i))return;
     const categories=i.guild.channels.cache.filter(c=>c.type===ChannelType.GuildCategory);
     if(!categories.size)return styledReply(i,{content:'📁 No categories found in this server.',ephemeral:true});
-    const menu=new StringSelectMenuBuilder().setCustomId('categorydelete:select').setPlaceholder('Select a category to delete').addOptions([...categories.values()].slice(0,25).map(c=>({label:c.name.slice(0,100),value:c.id,description:'Delete this category and all channels inside it'})));
+    const menu=new ChannelSelectMenuBuilder().setCustomId('categorydelete:select').setPlaceholder('Select a category to delete').setChannelTypes(ChannelType.GuildCategory).setMinValues(1).setMaxValues(1);
     return styledReply(i,{content:'⚠️ Category Delete\nSelect a category below. This will permanently delete the category and every channel inside it.',components:[new ActionRowBuilder().addComponents(menu)],ephemeral:true});
   }
   if(n==='welcome'){if(!guildOnly(i))return;const channel=i.options.getChannel('channel');const message=i.options.getString('message');setWelcome(i.guild.id,channel.id,message);return styledReply(i, '👋 Welcome system configured for <#'+channel.id+'>.\nPlaceholders: {user}, {username}, {server}, {membercount}, {id}.');}
