@@ -6,6 +6,7 @@ import {
 } from 'discord.js';
 import { playMusic, pauseMusic, resumeMusic, skipMusic, stopMusic, getQueue } from './music.js';
 import { grantPremium, revokePremium, listPremium, premiumExpiry, grantNoPrefix, revokeNoPrefix, hasNoPrefix } from './premium.js';
+import { setWelcome, clearWelcome, getWelcome, setAutoresponder, removeAutoresponder, getAutoresponders } from './server-config.js';
 
 const ownerId = process.env.OWNER_ID || '1244215702345482301';
 const state = {
@@ -25,7 +26,7 @@ const definitions = [
   ['roledelete','administration'],['roleadd','administration'],['roleremove','administration'],
   ['channelcreate','administration'],['channeldelete','administration'],['setup','administration'],
   ['automod','automod'],['antispam','automod'],['antilink','automod'],['filterword','automod'],
-  ['logging','logging'],['welcome','welcome'],['goodbye','welcome'],
+  ['logging','logging'],['welcome','welcome'],['goodbye','welcome'],['autoresponder','administration'],
   ['ticket','tickets'],['ticketclose','tickets'],['ticketadd','tickets'],['ticketremove','tickets'],['ticketpanel','tickets'],
   ['giveaway','giveaways'],['giveawayend','giveaways'],['giveawayreroll','giveaways'],
   ['balance','economy'],['daily','economy'],['work','economy'],['pay','economy'],['shop','economy'],['inventory','economy'],
@@ -170,7 +171,7 @@ export async function handle(i,client) {
   if(n==='roleadd'||n==='roleremove'){if(!guildOnly(i))return;const m=i.options.getMember('user'),r=i.options.getRole('role');if(n==='roleadd')await m.roles.add(r);else await m.roles.remove(r);return i.reply(n==='roleadd'?'➕ Role added.':'➖ Role removed.');}
   if(n==='channelcreate'){if(!guildOnly(i))return;const type=i.options.getString('type')==='voice'?ChannelType.GuildVoice:ChannelType.GuildText,c=await i.guild.channels.create({name:i.options.getString('name'),type});return i.reply('📁 Created <#'+c.id+'>.');}
   if(n==='channeldelete'){if(!guildOnly(i))return;await i.options.getChannel('channel').delete('Lightcore');return i.reply('🗑️ Channel deleted.');}
-  if(n==='setup')return i.reply('## ⚙️ Lightcore Setup\\nModules: AutoMod • Logging • Welcome • Tickets • Giveaways • Economy • Levels • Music');
+  if(n==='welcome'){if(!guildOnly(i))return;const channel=i.options.getChannel('channel');const message=i.options.getString('message');setWelcome(i.guild.id,channel.id,message);return i.reply('👋 Welcome system configured for <#'+channel.id+'>.\nPlaceholders: {user}, {username}, {server}, {membercount}, {id}.');}\n  if(n==='goodbye'){if(!guildOnly(i))return;return i.reply('👋 Goodbye module is ready; use the welcome configuration/database for your goodbye channel.');}\n  if(n==='autoresponder'){if(!guildOnly(i))return;const action=i.options.getString('action'),trigger=i.options.getString('trigger'),response=i.options.getString('response');if(action==='list'){const data=getAutoresponders(i.guild.id);return i.reply('🤖 Autoresponders: '+(Object.keys(data).length?Object.keys(data).map(x=>'`'+x+'`').join(', '):'None'));}if(!trigger)return i.reply({content:'Trigger is required for this action.',ephemeral:true});if(action==='remove'){removeAutoresponder(i.guild.id,trigger);return i.reply('🗑️ Removed autoresponder `'+trigger+'`.');}if(!response)return i.reply({content:'Response is required when adding an autoresponder.',ephemeral:true});setAutoresponder(i.guild.id,trigger,response);return i.reply('🤖 Autoresponder saved for `'+trigger+'`.');}\n  if(n==='setup')return i.reply('## ⚙️ Lightcore Setup\\nModules: AutoMod • Logging • Welcome • AutoResponder • Tickets • Giveaways • Economy • Levels • Music');
   if(['automod','antispam','antilink','filterword','logging','welcome','goodbye'].includes(n)){if(!guildOnly(i))return;state.settings.set(key(i.guild.id,n),true);return i.reply('✅ '+n+' module enabled.');}
   if(n==='ticket'){if(!guildOnly(i))return;const c=await i.guild.channels.create({name:'ticket-'+i.user.username.toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,18),type:ChannelType.GuildText,permissionOverwrites:[{id:i.guild.roles.everyone.id,deny:['ViewChannel']},{id:i.user.id,allow:['ViewChannel','SendMessages','ReadMessageHistory']} ]});state.tickets.set(c.id,i.user.id);return i.reply('🎫 Ticket created: <#'+c.id+'>');}
   if(n==='ticketclose'){if(!guildOnly(i))return;return i.channel.delete('Lightcore ticket close');}
