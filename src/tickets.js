@@ -1,4 +1,5 @@
 import Database from 'better-sqlite3';
+import { cardMessage } from './ui.js';
 
 const db = new Database(process.env.LIGHTCORE_DB_PATH || process.env.PREMIUM_DB_PATH || 'lightcore.sqlite');
 db.exec(`
