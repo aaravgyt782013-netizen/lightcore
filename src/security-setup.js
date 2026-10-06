@@ -1,6 +1,6 @@
 import { ChannelType, PermissionFlagsBits } from 'discord.js';
 import { setLogChannel } from './logs.js';
-const NAMES=['lightcore-security-logs','lightcore-moderation-logs','lightcore-server-logs'];
+const NAMES=['lightcore-security-logs','lightcore-moderation-logs','lightcore-server-logs','lightcore-antinuke-actions'];
 export function getSecurityChannelNames(){return NAMES;}
 export async function setupSecurityChannels(guild){
  const me=guild.members.me;
