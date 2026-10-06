@@ -8,12 +8,13 @@ export function cardPayload(payload, fallbackTitle='Lightcore', guildId=null) {
   const title = isObject && payload.title ? String(payload.title) : fallbackTitle;
   const branding = guildId ? getPremiumBranding(guildId) : null;
   const brandName = branding?.name || 'Lightcore';
-  const brandTitle = title === 'Lightcore' ? brandName : title;
+  const hasBranding = Boolean(branding && (branding.name || branding.logo_url || branding.banner_url || branding.accent !== 5793266));
+  const accent = hasBranding ? Number(branding.accent || 5793266) : 0x5865F2;
   const box = new ContainerBuilder()
-    .setAccentColor(0x5865F2)
-    .addTextDisplayComponents(new TextDisplayBuilder().setContent('## ⚡ '+brandTitle))
+    .setAccentColor(accent)
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent('## ⚡ '+brandName))
     .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
-    .addTextDisplayComponents(new TextDisplayBuilder().setContent(raw || 'Done.'));
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent((title && title !== 'Lightcore' ? '**'+title+'**\\n' : '') + (raw || 'Done.')));
   if (branding?.logo_url) {
     const section = new SectionBuilder()
       .addTextDisplayComponents(new TextDisplayBuilder().setContent('**'+brandName+'** · Premium server branding'))
