@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { Client, GatewayIntentBits, REST, Routes } from 'discord.js';
-import { REGISTERED, makeCommand } from './commands.js';
+import { SLASH_REGISTERED, makeCommand } from './commands.js';
 
 const token = process.env.DISCORD_TOKEN;
 const clientId = process.env.CLIENT_ID;
@@ -11,7 +11,7 @@ if (!token || !clientId) {
 }
 
 const rest = new REST({ version: '10' }).setToken(token);
-const body = REGISTERED.map(({ name, category }) => makeCommand(name, category).toJSON());
+const body = SLASH_REGISTERED.map(({ name, category }) => makeCommand(name, category).toJSON());
 
 try {
   console.log('Replacing Lightcore application commands from repository...');
