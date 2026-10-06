@@ -52,7 +52,19 @@ async function enforceAntiNuke(guild, auditType, eventKey, targetId) {
 }
 client.on('guildMemberAdd', async (member) => {
   recordJoin(member.guild.id, member.id);
-  if (member.user.bot) return;
+  if (member.user.bot) {
+    await new Promise(resolve => setTimeout(resolve, 700));
+    const logs = await member.guild.fetchAuditLogs({ type: AuditLogEvent.BotAdd, limit: 5 }).catch(() => null);
+    const entry = logs?.entries.find(e => e.target?.id === member.id && Date.now() - e.createdTimestamp < 8000);
+    if (entry?.executorId) {
+      const result = antiNukeCheck(member.guild.id, entry.executorId, 'bot_add');
+      if (result.triggered && entry.executorId !== member.guild.ownerId && !isAntiNukeBypassed(member.guild.id, entry.executorId)) {
+        const actor = await member.guild.members.fetch(entry.executorId).catch(() => null);
+        if (actor) await actor.kick('Lightcore Anti-Nuke: unauthorized bot addition').catch(() => {});
+      }
+    }
+    return;
+  }
   const cfg = getWelcome(member.guild.id);
   if (!cfg.channelId) return;
   const channel = member.guild.channels.cache.get(cfg.channelId) || await member.guild.channels.fetch(cfg.channelId).catch(() => null);
