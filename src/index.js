@@ -11,7 +11,7 @@ const port = Number(process.env.PORT || 3000);
 const host = process.env.HOST || '0.0.0.0';
 const prefix = '.';
 const supportUrl = 'https://discord.gg/Ehmqr5drSz';
-const supportUrl = 'https://discord.gg/Ehmqr5drSz';
+
 
 if (!token) { console.error('DISCORD_TOKEN is missing.'); process.exit(1); }
 
