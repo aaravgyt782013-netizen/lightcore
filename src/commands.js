@@ -93,7 +93,6 @@ export function makeCommand(name, category) {
   if (name === 'xpgive' || name === 'levelgive') { userOption(b); intOption(b,'amount',true,1,1000000); }
   if (name === 'play') textOption(b,'song');
   if (name === 'rps') textOption(b,'choice');
-  if (name === 'timestamp') textOption(b,'date');
   if (name === 'premium' || name === 'noprefix') {
     b.addSubcommand(s=>s.setName('grant').setDescription('Grant access').addUserOption(o=>o.setName('user').setDescription('User').setRequired(true)).addIntegerOption(o=>o.setName('days').setDescription('Days').setMinValue(1).setMaxValue(3650)));
     b.addSubcommand(s=>s.setName('revoke').setDescription('Revoke access').addUserOption(o=>o.setName('user').setDescription('User').setRequired(true)));
