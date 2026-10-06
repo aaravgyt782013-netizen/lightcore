@@ -1,10 +1,10 @@
-import { SlashCommandBuilder, PermissionFlagsBits, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, MessageFlags, ChannelType } from 'discord.js';
 import { playMusic, pauseMusic, resumeMusic, skipMusic, stopMusic, getQueue } from './music.js';
 import { grantPremium, revokePremium, listPremium, premiumExpiry, grantNoPrefix, revokeNoPrefix, hasNoPrefix, isPremium } from './premium.js';
 
 const CATALOG = [{"name":"ban","category":"moderation"},{"name":"unban","category":"moderation"},{"name":"kick","category":"moderation"},{"name":"timeout","category":"moderation"},{"name":"untimeout","category":"moderation"},{"name":"warn","category":"moderation"},{"name":"warnings","category":"moderation"},{"name":"clearwarnings","category":"moderation"},{"name":"purge","category":"moderation"},{"name":"slowmode","category":"moderation"},{"name":"lock","category":"moderation"},{"name":"unlock","category":"moderation"},{"name":"lockdown","category":"moderation"},{"name":"unlockdown","category":"moderation"},{"name":"nick","category":"moderation"},{"name":"deafen","category":"moderation"},{"name":"undeafen","category":"moderation"},{"name":"move","category":"moderation"},{"name":"softban","category":"moderation"},{"name":"massban","category":"moderation"},{"name":"history","category":"moderation"},{"name":"case","category":"moderation"},{"name":"cases","category":"moderation"},{"name":"reason","category":"moderation"},{"name":"mute","category":"moderation"},{"name":"unmute","category":"moderation"},{"name":"setup","category":"administration"},{"name":"config","category":"administration"},{"name":"configview","category":"administration"},{"name":"prefix","category":"administration"},{"name":"autorole","category":"administration"},{"name":"autoroleoff","category":"administration"},{"name":"welcome","category":"administration"},{"name":"welcomeoff","category":"administration"},{"name":"goodbye","category":"administration"},{"name":"verification","category":"administration"},{"name":"verificationoff","category":"administration"},{"name":"rules","category":"administration"},{"name":"announce","category":"administration"},{"name":"embed","category":"administration"},{"name":"say","category":"administration"},{"name":"poll","category":"administration"},{"name":"reactionrole","category":"administration"},{"name":"role","category":"administration"},{"name":"rolecreate","category":"administration"},{"name":"roledelete","category":"administration"},{"name":"roleadd","category":"administration"},{"name":"roleremove","category":"administration"},{"name":"roleinfo","category":"administration"},{"name":"channel","category":"administration"},{"name":"channelcreate","category":"administration"},{"name":"channeldelete","category":"administration"},{"name":"channeledit","category":"administration"},{"name":"categorydelete","category":"administration"},{"name":"permissions","category":"administration"},{"name":"servericon","category":"administration"},{"name":"serverbanner","category":"administration"},{"name":"servername","category":"administration"},{"name":"servername-reset","category":"administration"},{"name":"automod","category":"automod"},{"name":"automodstatus","category":"automod"},{"name":"antispam","category":"automod"},{"name":"antiinvite","category":"automod"},{"name":"antilink","category":"automod"},{"name":"anticaps","category":"automod"},{"name":"antimention","category":"automod"},{"name":"antiraid","category":"automod"},{"name":"antibot","category":"automod"},{"name":"antiscam","category":"automod"},{"name":"filter","category":"automod"},{"name":"filteradd","category":"automod"},{"name":"filterremove","category":"automod"},{"name":"filterlist","category":"automod"},{"name":"badwords","category":"automod"},{"name":"badwordadd","category":"automod"},{"name":"badwordremove","category":"automod"},{"name":"whitelist","category":"automod"},{"name":"whitelistadd","category":"automod"},{"name":"whitelistremove","category":"automod"},{"name":"quarantine","category":"automod"},{"name":"unquarantine","category":"automod"},{"name":"raidmode","category":"automod"},{"name":"raidmodeoff","category":"automod"},{"name":"verify","category":"automod"},{"name":"verificationlog","category":"automod"},{"name":"security","category":"security"},{"name":"securitystatus","category":"security"},{"name":"antinuke","category":"security"},{"name":"antinukeoff","category":"security"},{"name":"antialt","category":"security"},{"name":"antialtoff","category":"security"},{"name":"accountage","category":"security"},{"name":"joinscan","category":"security"},{"name":"leavescan","category":"security"},{"name":"audit","category":"security"},{"name":"auditlog","category":"security"},{"name":"rolelock","category":"security"},{"name":"channellock","category":"security"},{"name":"backupinfo","category":"security"},{"name":"emergency","category":"security"},{"name":"emergencyoff","category":"security"},{"name":"panic","category":"security"},{"name":"panicoff","category":"security"},{"name":"trust","category":"security"},{"name":"untrust","category":"security"},{"name":"help","category":"utility"},{"name":"ping","category":"utility"},{"name":"uptime","category":"utility"},{"name":"botinfo","category":"utility"},{"name":"invite","category":"utility"},{"name":"support","category":"utility"},{"name":"avatar","category":"utility"},{"name":"banner","category":"utility"},{"name":"userinfo","category":"utility"},{"name":"serverinfo","category":"utility"},{"name":"membercount","category":"utility"},{"name":"roles","category":"utility"},{"name":"channels","category":"utility"},{"name":"emojis","category":"utility"},{"name":"stickers","category":"utility"},{"name":"id","category":"utility"},{"name":"snowflake","category":"utility"},{"name":"timestamp","category":"utility"},{"name":"remind","category":"utility"},{"name":"reminders","category":"utility"},{"name":"timer","category":"utility"},{"name":"translate","category":"utility"},{"name":"calculator","category":"utility"},{"name":"choose","category":"utility"},{"name":"pollresults","category":"utility"},{"name":"embedpreview","category":"utility"},{"name":"afk","category":"utility"},{"name":"afkoff","category":"utility"},{"name":"whois","category":"utility"},{"name":"search","category":"utility"},{"name":"topic","category":"utility"},{"name":"suggest","category":"utility"},{"name":"report","category":"utility"},{"name":"feedback","category":"utility"},{"name":"stats","category":"utility"},{"name":"ticket","category":"tickets"},{"name":"ticketclose","category":"tickets"},{"name":"ticketopen","category":"tickets"},{"name":"ticketadd","category":"tickets"},{"name":"ticketremove","category":"tickets"},{"name":"ticketclaim","category":"tickets"},{"name":"ticketunclaim","category":"tickets"},{"name":"ticketrename","category":"tickets"},{"name":"tickettranscript","category":"tickets"},{"name":"ticketpanel","category":"tickets"},{"name":"ticketsetup","category":"tickets"},{"name":"ticketsettings","category":"tickets"},{"name":"ticketblacklist","category":"tickets"},{"name":"ticketwhitelist","category":"tickets"},{"name":"ticketpriority","category":"tickets"},{"name":"ticketlock","category":"tickets"},{"name":"ticketunlock","category":"tickets"},{"name":"ticketstatus","category":"tickets"},{"name":"ticketstats","category":"tickets"},{"name":"ticketdelete","category":"tickets"},{"name":"giveaway","category":"giveaways"},{"name":"giveawayend","category":"giveaways"},{"name":"giveawayreroll","category":"giveaways"},{"name":"giveawaypause","category":"giveaways"},{"name":"giveawayresume","category":"giveaways"},{"name":"giveawaylist","category":"giveaways"},{"name":"giveawayinfo","category":"giveaways"},{"name":"giveawaycancel","category":"giveaways"},{"name":"giveawayedit","category":"giveaways"},{"name":"giveawaywinners","category":"giveaways"},{"name":"giveawayenter","category":"giveaways"},{"name":"giveawayleave","category":"giveaways"},{"name":"giveawayrequirements","category":"giveaways"},{"name":"giveawayrole","category":"giveaways"},{"name":"giveawaychannel","category":"giveaways"},{"name":"balance","category":"economy"},{"name":"daily","category":"economy"},{"name":"weekly","category":"economy"},{"name":"work","category":"economy"},{"name":"crime","category":"economy"},{"name":"rob","category":"economy"},{"name":"deposit","category":"economy"},{"name":"withdraw","category":"economy"},{"name":"pay","category":"economy"},{"name":"give","category":"economy"},{"name":"bank","category":"economy"},{"name":"beg","category":"economy"},{"name":"dice","category":"economy"},{"name":"leaderboard","category":"economy"},{"name":"richest","category":"economy"},{"name":"shop","category":"economy"},{"name":"buy","category":"economy"},{"name":"sell","category":"economy"},{"name":"inventory","category":"economy"},{"name":"item","category":"economy"},{"name":"items","category":"economy"},{"name":"use","category":"economy"},{"name":"trade","category":"economy"},{"name":"trades","category":"economy"},{"name":"gift","category":"economy"},{"name":"economy","category":"economy"},{"name":"economyreset","category":"economy"},{"name":"economystats","category":"economy"},{"name":"claim","category":"economy"},{"name":"depositall","category":"economy"},{"name":"withdrawall","category":"economy"},{"name":"rank","category":"levels"},{"name":"level","category":"levels"},{"name":"levels","category":"levels"},{"name":"xp","category":"levels"},{"name":"xpset","category":"levels"},{"name":"xpgive","category":"levels"},{"name":"xptake","category":"levels"},{"name":"levelset","category":"levels"},{"name":"levelgive","category":"levels"},{"name":"leveltake","category":"levels"},{"name":"leaderboardxp","category":"levels"},{"name":"levelroles","category":"levels"},{"name":"levelroleadd","category":"levels"},{"name":"levelroleremove","category":"levels"},{"name":"levelsettings","category":"levels"},{"name":"levelreset","category":"levels"},{"name":"prestige","category":"levels"},{"name":"prestigeset","category":"levels"},{"name":"prestigeleaderboard","category":"levels"},{"name":"8ball","category":"fun"},{"name":"coin","category":"fun"},{"name":"roll","category":"fun"},{"name":"rate","category":"fun"},{"name":"ship","category":"fun"},{"name":"love","category":"fun"},{"name":"roast","category":"fun"},{"name":"compliment","category":"fun"},{"name":"insult","category":"fun"},{"name":"joke","category":"fun"},{"name":"meme","category":"fun"},{"name":"quote","category":"fun"},{"name":"fact","category":"fun"},{"name":"truth","category":"fun"},{"name":"dare","category":"fun"},{"name":"wouldyourather","category":"fun"},{"name":"neverhaveiever","category":"fun"},{"name":"rps","category":"fun"},{"name":"reverse","category":"fun"},{"name":"mock","category":"fun"},{"name":"ascii","category":"fun"},{"name":"clap","category":"fun"},{"name":"highfive","category":"fun"},{"name":"hug","category":"fun"},{"name":"kiss","category":"fun"},{"name":"slap","category":"fun"},{"name":"pat","category":"fun"},{"name":"bonk","category":"fun"},{"name":"dance","category":"fun"},{"name":"cry","category":"fun"},{"name":"laugh","category":"fun"},{"name":"wink","category":"fun"},{"name":"poke","category":"fun"},{"name":"cuddle","category":"fun"},{"name":"nom","category":"fun"},{"name":"yeet","category":"fun"},{"name":"vibe","category":"fun"},{"name":"fortune","category":"fun"},{"name":"trivia","category":"games"},{"name":"triviascore","category":"games"},{"name":"trivialeaderboard","category":"games"},{"name":"connect4","category":"games"},{"name":"tictactoe","category":"games"},{"name":"hangman","category":"games"},{"name":"wordle","category":"games"},{"name":"2048","category":"games"},{"name":"minesweeper","category":"games"},{"name":"snake","category":"games"},{"name":"memory","category":"games"},{"name":"higherlower","category":"games"},{"name":"guessnumber","category":"games"},{"name":"guessword","category":"games"},{"name":"anagram","category":"games"},{"name":"mathgame","category":"games"},{"name":"quiz","category":"games"},{"name":"duel","category":"games"},{"name":"battle","category":"games"},{"name":"rpg","category":"games"},{"name":"adventure","category":"games"},{"name":"dailyquest","category":"games"},{"name":"quests","category":"games"},{"name":"quest","category":"games"},{"name":"inventorygame","category":"games"},{"name":"craft","category":"games"},{"name":"craftlist","category":"games"},{"name":"fishing","category":"games"},{"name":"hunt","category":"games"},{"name":"mine","category":"games"},{"name":"farm","category":"games"},{"name":"play","category":"music"},{"name":"pause","category":"music"},{"name":"resume","category":"music"},{"name":"skip","category":"music"},{"name":"stop","category":"music"},{"name":"queue","category":"music"},{"name":"nowplaying","category":"music"},{"name":"volume","category":"music"},{"name":"shuffle","category":"music"},{"name":"loop","category":"music"},{"name":"lyrics","category":"music"},{"name":"seek","category":"music"},{"name":"join","category":"music"},{"name":"leave","category":"music"},{"name":"disconnect","category":"music"},{"name":"autoplay","category":"music"},{"name":"radio","category":"music"},{"name":"playlist","category":"music"},{"name":"playlists","category":"music"},{"name":"remove","category":"music"},{"name":"movequeue","category":"music"},{"name":"clearqueue","category":"music"},{"name":"bassboost","category":"music"},{"name":"nightcore","category":"music"},{"name":"filtermusic","category":"music"},{"name":"musicsettings","category":"music"},{"name":"musichelp","category":"music"},{"name":"logging","category":"logging"},{"name":"logstatus","category":"logging"},{"name":"logchannel","category":"logging"},{"name":"logchanneloff","category":"logging"},{"name":"modlogs","category":"logging"},{"name":"messagelogs","category":"logging"},{"name":"memberlogs","category":"logging"},{"name":"voicelogs","category":"logging"},{"name":"serverlogs","category":"logging"},{"name":"rolelogs","category":"logging"},{"name":"channellogs","category":"logging"},{"name":"commandlogs","category":"logging"},{"name":"auditlogs","category":"logging"},{"name":"logtest","category":"logging"},{"name":"logignore","category":"logging"},{"name":"logignoreadd","category":"logging"},{"name":"logignoreremove","category":"logging"},{"name":"welcometest","category":"welcome"},{"name":"welcomechannel","category":"welcome"},{"name":"welcomeimage","category":"welcome"},{"name":"welcomeembed","category":"welcome"},{"name":"welcomevariables","category":"welcome"},{"name":"welcomeautorole","category":"welcome"},{"name":"welcomemessage","category":"welcome"},{"name":"goodbyemessage","category":"welcome"},{"name":"goodbyetest","category":"welcome"},{"name":"goodbyechannel","category":"welcome"},{"name":"memberjoin","category":"welcome"},{"name":"memberleave","category":"welcome"},{"name":"image","category":"image"},{"name":"imageinfo","category":"image"},{"name":"imagequote","category":"image"},{"name":"imagecaption","category":"image"},{"name":"imagetranslate","category":"image"},{"name":"imagethumbnail","category":"image"},{"name":"imagesearch","category":"image"},{"name":"gif","category":"image"},{"name":"gifsearch","category":"image"},{"name":"sticker","category":"image"},{"name":"stickersearch","category":"image"},{"name":"memeimage","category":"image"},{"name":"demotivational","category":"image"},{"name":"wanted","category":"image"},{"name":"achievement","category":"image"},{"name":"triggered","category":"image"},{"name":"blur","category":"image"},{"name":"pixelate","category":"image"},{"name":"grayscale","category":"image"},{"name":"invert","category":"image"},{"name":"ai","category":"ai"},{"name":"ask","category":"ai"},{"name":"summarize","category":"ai"},{"name":"rewrite","category":"ai"},{"name":"explain","category":"ai"},{"name":"translateai","category":"ai"},{"name":"code","category":"ai"},{"name":"debug","category":"ai"},{"name":"ideas","category":"ai"},{"name":"chat","category":"ai"},{"name":"prompt","category":"ai"},{"name":"aigen","category":"ai"},{"name":"eval","category":"owner"},{"name":"reload","category":"owner"},{"name":"sync","category":"owner"},{"name":"syncguild","category":"owner"},{"name":"broadcast","category":"owner"},{"name":"status","category":"owner"},{"name":"maintenance","category":"owner"},{"name":"maintenanceoff","category":"owner"},{"name":"shutdown","category":"owner"},{"name":"restart","category":"owner"},{"name":"setactivity","category":"owner"},{"name":"setstatus","category":"owner"},{"name":"ownerhelp","category":"owner"},{"name":"guilds","category":"owner"},{"name":"leaveguild","category":"owner"},{"name":"joininfo","category":"owner"},{"name":"health","category":"owner"},{"name":"version","category":"owner"},{"name":"permissionscheck","category":"owner"},{"name":"premium","category":"owner"},{"name":"noprefix","category":"owner"}];
 
-const REGISTERED = [["help","utility"],["ping","utility"],["uptime","utility"],["botinfo","utility"],["serverinfo","utility"],["userinfo","utility"],["avatar","utility"],["membercount","utility"],["roles","utility"],["channels","utility"],["ban","moderation"],["kick","moderation"],["timeout","moderation"],["warn","moderation"],["purge","moderation"],["slowmode","moderation"],["lock","moderation"],["unlock","moderation"],["say","administration"],["announce","administration"],["choose","utility"],["coin","fun"],["dice","economy"],["roll","fun"],["8ball","fun"],["joke","fun"],["rate","fun"],["ship","fun"],["balance","economy"],["daily","economy"],["work","economy"],["beg","economy"],["shop","economy"],["inventory","economy"],["pay","economy"],["play","music"],["pause","music"],["resume","music"],["skip","music"],["stop","music"],["queue","music"],["nowplaying","music"],["ai","ai"],["ask","ai"],["code","ai"],["debug","ai"],["rewrite","ai"],["explain","ai"],["translateai","ai"],["remind","utility"],["timer","utility"],["afk","utility"],["invite","utility"],["support","utility"],["premium","owner"],["noprefix","owner"]];
+const REGISTERED = [{"name":"help","category":"utility"},{"name":"ping","category":"utility"},{"name":"uptime","category":"utility"},{"name":"botinfo","category":"utility"},{"name":"serverinfo","category":"utility"},{"name":"userinfo","category":"utility"},{"name":"avatar","category":"utility"},{"name":"membercount","category":"utility"},{"name":"roles","category":"utility"},{"name":"channels","category":"utility"},{"name":"invite","category":"utility"},{"name":"support","category":"utility"},{"name":"remind","category":"utility"},{"name":"timer","category":"utility"},{"name":"afk","category":"utility"},{"name":"choose","category":"utility"},{"name":"coin","category":"fun"},{"name":"dice","category":"fun"},{"name":"roll","category":"fun"},{"name":"8ball","category":"fun"},{"name":"joke","category":"fun"},{"name":"rate","category":"fun"},{"name":"ship","category":"fun"},{"name":"ban","category":"moderation"},{"name":"kick","category":"moderation"},{"name":"timeout","category":"moderation"},{"name":"untimeout","category":"moderation"},{"name":"warn","category":"moderation"},{"name":"purge","category":"moderation"},{"name":"slowmode","category":"moderation"},{"name":"lock","category":"moderation"},{"name":"unlock","category":"moderation"},{"name":"nick","category":"moderation"},{"name":"say","category":"administration"},{"name":"announce","category":"administration"},{"name":"poll","category":"administration"},{"name":"role","category":"administration"},{"name":"rolecreate","category":"administration"},{"name":"roledelete","category":"administration"},{"name":"roleadd","category":"administration"},{"name":"roleremove","category":"administration"},{"name":"channelcreate","category":"administration"},{"name":"channeldelete","category":"administration"},{"name":"balance","category":"economy"},{"name":"daily","category":"economy"},{"name":"work","category":"economy"},{"name":"pay","category":"economy"},{"name":"shop","category":"economy"},{"name":"inventory","category":"economy"},{"name":"leaderboard","category":"economy"},{"name":"play","category":"music"},{"name":"pause","category":"music"},{"name":"resume","category":"music"},{"name":"skip","category":"music"},{"name":"stop","category":"music"},{"name":"queue","category":"music"},{"name":"nowplaying","category":"music"},{"name":"premium","category":"owner"},{"name":"noprefix","category":"owner"}]
 
 const categoryEmoji = {
   moderation: '🛡️', administration: '⚙️', automod: '🤖', security: '🔐',
@@ -84,79 +84,53 @@ function commandDescription(name) {
 function buildHelpPayload(selectedCategory = 'overview') {
   const groups = {};
   for (const item of REGISTERED) (groups[item.category] ||= []).push(item.name);
-
   const categoryNames = Object.keys(groups);
-  const safeCategory = selectedCategory === 'overview' || groups[selectedCategory]
-    ? selectedCategory
-    : 'overview';
+  const safeCategory = selectedCategory === 'overview' || groups[selectedCategory] ? selectedCategory : 'overview';
 
-  const title = safeCategory === 'overview'
-    ? '⚡ LIGHTCORE • HELP'
-    : `${categoryEmoji[safeCategory] || '🔹'} LIGHTCORE • ${safeCategory.toUpperCase()}`;
+  const lines = safeCategory === 'overview'
+    ? [
+        '## ⚡ LIGHTCORE',
+        '> **All-in-one Discord management bot**',
+        '',
+        '**Features**',
+        '🛡️ Moderation • ⚙️ Administration • 🧰 Utility',
+        '💰 Economy • 🎵 Music • 🎉 Fun',
+        '',
+        '**Select a category below** to browse commands.'
+      ]
+    : [
+        '## ' + (categoryEmoji[safeCategory] || '🔹') + ' ' + safeCategory.toUpperCase(),
+        '',
+        ...(groups[safeCategory] || []).map(name => '**/' + name + '** — ' + commandDescription(name))
+      ];
 
-  const embed = new EmbedBuilder()
-    .setColor(0x5865F2)
-    .setTitle(title)
-    .setFooter({ text: `Lightcore • ${REGISTERED.length} registered slash commands` })
-    .setTimestamp();
-
-  if (safeCategory === 'overview') {
-    embed.setDescription(
-      'A powerful all-in-one Discord bot for moderation, utility, music, tickets, economy and more.\\n\\n' +
-      '**Choose a category below** to browse the commands available in this launch build.'
-    );
-    for (const cat of categoryNames) {
-      const names = groups[cat];
-      embed.addFields({
-        name: `${categoryEmoji[cat] || '🔹'} ${cat.charAt(0).toUpperCase() + cat.slice(1)} • ${names.length}`,
-        value: names.slice(0, 12).map(name => '**/' + name + '**').join(' • ') + (names.length > 12 ? ' • …' : ''),
-        inline: false
-      });
-    }
-  } else {
-    const names = groups[safeCategory] || [];
-    embed.setDescription(
-      names.length
-        ? names.map(name => `• **/${name}** — ${commandDescription(name)}`).join('\\n')
-        : 'No registered commands are available in this category.'
-    );
-  }
-
-  const options = [
-    { label: '🏠 Overview', value: 'overview', description: 'Show the main Lightcore help page' },
-    ...categoryNames.slice(0, 24).map(cat => ({
-      label: `${categoryEmoji[cat] || '🔹'} ${cat.charAt(0).toUpperCase() + cat.slice(1)}`.slice(0, 100),
-      value: cat,
-      description: `${groups[cat].length} registered command${groups[cat].length === 1 ? '' : 's'}`.slice(0, 100)
-    }))
-  ];
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent(lines.join('\n')))
+    .addSeparatorComponents(new SeparatorBuilder().setDivider(true));
 
   const select = new StringSelectMenuBuilder()
     .setCustomId('lightcore_help:category')
-    .setPlaceholder('📚 Select a command category')
-    .addOptions(options);
+    .setPlaceholder('📚 Choose a category')
+    .addOptions([
+      {label:'🏠 Overview', value:'overview', description:'Lightcore overview'},
+      ...categoryNames.map(cat => ({
+        label: ((categoryEmoji[cat] || '🔹') + ' ' + cat).slice(0,100),
+        value: cat,
+        description: (groups[cat].length + ' commands').slice(0,100)
+      }))
+    ]);
 
   const buttons = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId('lightcore_help:home')
-      .setLabel('Home')
-      .setEmoji('🏠')
-      .setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder()
-      .setCustomId('lightcore_help:ping')
-      .setLabel('Ping')
-      .setEmoji('🏓')
-      .setStyle(ButtonStyle.Primary)
+    new ButtonBuilder().setCustomId('lightcore_help:home').setLabel('Home').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId('lightcore_help:ping').setLabel('Ping').setStyle(ButtonStyle.Primary)
   );
 
-  return {
-    embeds: [embed],
-    components: [
-      new ActionRowBuilder().addComponents(select),
-      buttons
-    ]
-  };
+  container.addActionRowComponents(new ActionRowBuilder().addComponents(select));
+  container.addActionRowComponents(buttons);
+
+  return { flags: MessageFlags.IsComponentsV2, components: [container] };
 }
+
 
 async function handleHelpInteraction(interaction, client) {
   if (!interaction.isStringSelectMenu() && !interaction.isButton()) return false;
@@ -182,16 +156,16 @@ function makeCommand(name, category) {
 
   // Safe, commonly useful options. They are optional so generic catalog
   // commands can still work without extra configuration.
-  if (['userinfo','avatar','ban','kick','timeout','warn','pay','give','ticketadd','ticketremove'].includes(name)) {
+  if (['userinfo','avatar','ban','kick','timeout','untimeout','warn','pay','roleadd','roleremove','roledelete','nick'].includes(name)) {
     b.addUserOption(o => o.setName('user').setDescription('Target user').setRequired(false));
   }
   if (name === 'play') {
     b.addStringOption(o => o.setName('song').setDescription('Song name or YouTube link').setRequired(true).setMaxLength(500));
   }
-  if (['say','announce','reason','suggest','feedback','report','ai','ask','code','debug','translateai','rewrite','explain'].includes(name)) {
+  if (['say','announce','suggest','feedback','report'].includes(name)) {
     b.addStringOption(o => o.setName('text').setDescription('Text').setRequired(true).setMaxLength(1900));
   }
-  if (['purge','clear'].includes(name)) {
+  if (['purge'].includes(name)) {
     b.addIntegerOption(o => o.setName('amount').setDescription('Number of messages').setRequired(true).setMinValue(1).setMaxValue(100));
   }
   if (['slowmode'].includes(name)) {
@@ -204,6 +178,12 @@ function makeCommand(name, category) {
     if (name === 'premium') b.addSubcommand(s => s.setName('list').setDescription('List active premium grants'));
   }
 
+  if (name === 'poll') b.addStringOption(o => o.setName('text').setDescription('Poll question').setRequired(true).setMaxLength(300));
+  if (name === 'rolecreate') b.addStringOption(o => o.setName('name').setDescription('Role name').setRequired(true).setMaxLength(100));
+  if (['roledelete','roleadd','roleremove'].includes(name)) b.addRoleOption(o => o.setName('role').setDescription('Role').setRequired(true));
+  if (['roleadd','roleremove'].includes(name)) b.addUserOption(o => o.setName('user').setDescription('User').setRequired(true));
+  if (name === 'channelcreate') b.addStringOption(o => o.setName('name').setDescription('Channel name').setRequired(true).setMaxLength(90));
+  if (name === 'channeldelete') b.addChannelOption(o => o.setName('channel').setDescription('Channel').setRequired(true));
   if (['remind','timer'].includes(name)) {
     b.addIntegerOption(o => o.setName('minutes').setDescription('Minutes').setRequired(true).setMinValue(1).setMaxValue(10080));
     b.addStringOption(o => o.setName('text').setDescription('Reminder text').setRequired(false).setMaxLength(500));
@@ -302,8 +282,74 @@ async function handle(interaction, client) {
     return interaction.reply('💤 AFK mode enabled for **' + interaction.user.tag + '**.');
   }
 
+  if (commandName === 'poll') {
+    if (!isStaff(interaction)) return interaction.reply({content:'❌ Staff permission required.',ephemeral:true});
+    const question = interaction.options.getString('text', true);
+    const embed = new EmbedBuilder().setTitle('📊 Poll').setDescription(question).setFooter({text:'React with 👍 or 👎'});
+    const msg = await interaction.reply({embeds:[embed], fetchReply:true});
+    await msg.react('👍').catch(()=>{}); await msg.react('👎').catch(()=>{});
+    return;
+  }
+
+  if (['rolecreate','roledelete','roleadd','roleremove'].includes(commandName)) {
+    if (!interaction.guild) return interaction.reply({content:'Server only.',ephemeral:true});
+    if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageRoles)) return interaction.reply({content:'❌ Manage Roles permission required.',ephemeral:true});
+    const role = interaction.options.getRole('role');
+    const name = interaction.options.getString('name');
+    try {
+      if (commandName === 'rolecreate') {
+        const created = await interaction.guild.roles.create({name: name || 'New Role', reason:'Lightcore rolecreate'});
+        return interaction.reply('✅ Created <@&' + created.id + '>.');
+      }
+      if (!role) return interaction.reply({content:'❌ Select a role.',ephemeral:true});
+      if (commandName === 'roledelete') { await role.delete('Lightcore roledelete'); return interaction.reply('🗑️ Role deleted.'); }
+      const member = interaction.options.getUser('user');
+      if (!member) return interaction.reply({content:'❌ Select a user.',ephemeral:true});
+      const m = await interaction.guild.members.fetch(member.id);
+      if (commandName === 'roleadd') await m.roles.add(role);
+      else await m.roles.remove(role);
+      return interaction.reply('✅ Role updated for ' + member + '.');
+    } catch (e) { return interaction.reply({content:'❌ ' + e.message.slice(0,250),ephemeral:true}); }
+  }
+
+  if (commandName === 'channelcreate') {
+    if (!interaction.guild) return interaction.reply({content:'Server only.',ephemeral:true});
+    if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageChannels)) return interaction.reply({content:'❌ Manage Channels permission required.',ephemeral:true});
+    const name = interaction.options.getString('name', true).toLowerCase().replace(/[^a-z0-9-_]/g,'-').slice(0,90);
+    const ch = await interaction.guild.channels.create({name, type:ChannelType.GuildText});
+    return interaction.reply('✅ Created ' + ch + '.');
+  }
+
+  if (commandName === 'channeldelete') {
+    if (!interaction.guild) return interaction.reply({content:'Server only.',ephemeral:true});
+    if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageChannels)) return interaction.reply({content:'❌ Manage Channels permission required.',ephemeral:true});
+    const channel = interaction.options.getChannel('channel');
+    if (!channel) return interaction.reply({content:'❌ Select a channel.',ephemeral:true});
+    await channel.delete('Lightcore channeldelete');
+    return interaction.reply('🗑️ Channel deleted.');
+  }
+
+  if (commandName === 'nick') {
+    if (!interaction.guild) return interaction.reply({content:'Server only.',ephemeral:true});
+    if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageNicknames)) return interaction.reply({content:'❌ Manage Nicknames permission required.',ephemeral:true});
+    const target = user || interaction.user;
+    const member = await interaction.guild.members.fetch(target.id);
+    const nickname = interaction.options.getString('text');
+    await member.setNickname(nickname || null, 'Lightcore nick');
+    return interaction.reply('✅ Nickname updated.');
+  }
+
   if (commandName === 'ping') {
     return interaction.reply(`🏓 Pong! **${client.ws.ping}ms**`);
+  }
+
+  if (commandName === 'untimeout') {
+    if (!interaction.guild || !isStaff(interaction)) return interaction.reply({content:'❌ Staff permission required.',ephemeral:true});
+    if (!user) return interaction.reply({content:'❌ Select a user.',ephemeral:true});
+    const member = await interaction.guild.members.fetch(user.id).catch(()=>null);
+    if (!member) return interaction.reply({content:'❌ User is not in this server.',ephemeral:true});
+    await member.timeout(null, 'Lightcore /untimeout');
+    return interaction.reply('✅ Timeout removed from ' + user + '.');
   }
 
   if (commandName === 'uptime') {
