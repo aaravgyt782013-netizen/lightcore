@@ -11,6 +11,8 @@ import { cardMessage, styledReply } from './ui.js';
 import { logModerationAction, logAntiNukeKick } from './modlogs.js';
 import { AuditLogEvent, PermissionFlagsBits } from 'discord.js';
 import { antiNukeCheck, isAntiNukeBypassed } from './antinuke.js';
+import { getLevelConfig, addXP, getLevelRewards, replacePlaceholders } from './leveling.js';
+import { dueGiveaways, endGiveaway, giveawayPayload, enterGiveaway } from './giveaways.js';
 
 const token = process.env.DISCORD_TOKEN;
 const port = Number(process.env.PORT || 3000);
@@ -26,7 +28,7 @@ const client = new Client({
   partials: [Partials.Channel, Partials.GuildMember, Partials.User]
 });
 
-client.once('ready', () => console.log('Lightcore 5.0.0 online as ' + client.user.tag));
+client.once('ready', () => { console.log('Lightcore 5.0.0 online as ' + client.user.tag); setInterval(processDueGiveaways,15000); });
 
 function renderWelcome(template, member) {
   return String(template || 'Welcome {user} to **{server}**! 🎉')
@@ -84,6 +86,37 @@ client.on('guildMemberAdd', async (member) => {
 
 client.on('guildMemberRemove', member => { if(!member.user.bot) recordLeave(member.guild.id,member.id); });\nclient.on('guildAuditLogEntryCreate', async (entry, guild) => {\n  if(!entry?.executorId || entry.executorId===client.user.id) return;\n  const labels={[AuditLogEvent.MemberKick]:'Kick',[AuditLogEvent.MemberBanAdd]:'Ban',[AuditLogEvent.MemberBanRemove]:'Unban'};\n  const action=labels[entry.action]; if(!action) return;\n  await logModerationAction(guild,{action,staff:{id:entry.executorId},target:entry.target?.user||entry.target||null,reason:entry.reason||'No reason recorded',extra:'Discord audit log'});\n});\n
 
+const levelCooldowns = new Map();
+
+async function processLevelXP(message) {
+  const cfg=getLevelConfig(message.guild.id);
+  if(!cfg.enabled)return;
+  const key=message.guild.id+':'+message.author.id;
+  const now=Date.now();
+  const last=levelCooldowns.get(key)||0;
+  if(now-last<cfg.cooldown*1000)return;
+  levelCooldowns.set(key,now);
+  const amount=Math.floor(cfg.xp_min+Math.random()*(Math.max(cfg.xp_min,cfg.xp_max)-cfg.xp_min+1));
+  const result=addXP(message.guild.id,message.author.id,amount);
+  if(result.levelsGained<1)return;
+  for(const reward of getLevelRewards(message.guild.id).filter(x=>x.level>result.before&&x.level<=result.level)){
+    const role=message.guild.roles.cache.get(reward.role_id);
+    if(role)await message.member.roles.add(role,'Lightcore level reward').catch(()=>{});
+  }
+  if(!cfg.levelup_enabled)return;
+  const channel=cfg.levelup_channel_id?message.guild.channels.cache.get(cfg.levelup_channel_id):message.channel;
+  if(channel?.isTextBased())await channel.send(cardMessage('⭐ Level Up',replacePlaceholders(cfg.levelup_message,message.member,result.level))).catch(()=>{});
+}
+
+async function processDueGiveaways(){
+  for(const g of dueGiveaways()){
+    const result=endGiveaway(g.id); if(!result)continue;
+    result.winnersPicked=result.winnersPicked||[];
+    const ch=client.channels.cache.get(g.channel_id);
+    if(ch?.isTextBased()&&g.message_id)await ch.messages.fetch(g.message_id).then(m=>m.edit(giveawayPayload(result,true))).catch(()=>{});
+  }
+}
+
 const voiceSessions = new Map();
 client.on('voiceStateUpdate', (oldState,newState) => {
   const id=newState.member?.id||oldState.member?.id; const gid=newState.guild?.id||oldState.guild?.id; if(!id||!gid)return;
@@ -111,6 +144,12 @@ client.on('guildDelete', async (guild) => {
 });
 
 client.on('interactionCreate', async (interaction) => {
+  if (interaction.isButton() && interaction.customId.startsWith('giveaway:enter:')) {
+    const id=interaction.customId.split(':')[2];
+    const result=enterGiveaway(id,interaction.user.id);
+    if(!result.ok)return interaction.reply({content:result.reason==='already'?'You are already entered in this giveaway.':'This giveaway has ended.',ephemeral:true});
+    return interaction.reply({content:'🎉 You entered the giveaway!',ephemeral:true});
+  }
   if (interaction.isButton() || interaction.isStringSelectMenu()) {
     try {
       if (await handleHelpInteraction(interaction, client)) return;
@@ -192,6 +231,7 @@ function createMessageInteraction(message, commandName, args) {
 client.on('messageCreate', async (message) => {
   if (message.author.bot || !message.guild) return;
   recordMessage(message.guild.id,message.author.id);
+  await processLevelXP(message);
   await Promise.allSettled([runAutoResponder(message), runAutoReactor(message)]);
   const raw = message.content.trim();
   if (!raw) return;
