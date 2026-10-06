@@ -1,6 +1,6 @@
 
 import {
-  SlashCommandBuilder, PermissionFlagsBits, ChannelType, ActionRowBuilder,
+  SlashCommandBuilder, PermissionFlagsBits, ChannelType, ActionRowBuilder, ChannelSelectMenuBuilder,
   StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, ContainerBuilder,
   TextDisplayBuilder, SeparatorBuilder, MessageFlags, EmbedBuilder
 } from 'discord.js';
@@ -175,6 +175,7 @@ export function makeCommand(name, category) {
   if (name === 'roleadd' || name === 'roleremove') { userOption(b); b.addRoleOption(o=>o.setName('role').setDescription('Role').setRequired(true)); }
   if (name === 'channelcreate') { textOption(b,'name'); b.addStringOption(o=>o.setName('type').setDescription('Channel type').addChoices({name:'Text',value:'text'},{name:'Voice',value:'voice'})); }
   if (name === 'channeldelete') b.addChannelOption(o=>o.setName('channel').setDescription('Channel').setRequired(true));
+  if (name === 'categorydelete') { /* category is selected from the interactive menu after running the command */ }
   if (name === 'poll') { textOption(b,'question'); textOption(b,'options'); }
   if (['levelsetup','levelsettings'].includes(name)) { textOption(b,'action',false); textOption(b,'value',false); }
   if (name === 'levelreward') { intOption(b,'level',true,1,1000); b.addRoleOption(o=>o.setName('role').setDescription('Reward role').setRequired(false)); }
