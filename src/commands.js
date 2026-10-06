@@ -9,7 +9,9 @@ import { playMusic, pauseMusic, resumeMusic, skipMusic, stopMusic, getQueue } fr
 import { grantPremium, revokePremium, listPremium, premiumExpiry, grantNoPrefix, revokeNoPrefix, hasNoPrefix } from './premium.js';
 import { setWelcome, clearWelcome, getWelcome, setAutoresponder, removeAutoresponder, getAutoresponders } from './server-config.js';
 import { getUserStats, getGuildStats, getTopStats, addCounter, removeCounter, listCounters } from './stats.js';
-import { getAntiNukeStatus, configureAntiNuke, resetAntiNuke, changeAntiNukeBypass, antiNukeStatusText, antiNukeConfigText, antiNukeBypassText } from './antinuke.js';
+import { getAntiNukeStatus, configureAntiNuke, resetAntiNuke, changeAntiNukeBypass, antiNukeStatusText, antiNukeConfigText, antiNukeBypassText, antiNukeWhitelistText } from './antinuke.js';
+import { setupSecurityChannels, getSecurityChannelNames } from './security-setup.js';
+import { logModerationAction } from './modlogs.js';
 import { getTicketConfig, updateTicketConfig, addTicketCategory, removeTicketCategory, createTicketRecord, getTicketRecord, closeTicketRecord, claimTicket, listTicketRecords } from './tickets.js';
 
 const ownerId = process.env.OWNER_ID || '1244215702345482301';
@@ -74,9 +76,9 @@ export function makeCommand(name, category) {
   if (name === 'timestamp') textOption(b,'date');
   if (name === 'counter') { b.addStringOption(o=>o.setName('type').setDescription('Counter type').setRequired(true).addChoices({name:'Members',value:'members'},{name:'Humans',value:'humans'},{name:'Bots',value:'bots'},{name:'Channels',value:'channels'},{name:'Roles',value:'roles'})); b.addChannelOption(o=>o.setName('channel').setDescription('Voice channel to rename').setRequired(true)); b.addStringOption(o=>o.setName('template').setDescription('Channel name template; {value} is replaced').setRequired(false)); }
   if (name === 'counterremove') b.addChannelOption(o=>o.setName('channel').setDescription('Counter channel').setRequired(true));
-  if (['antinuke','antinukestatus','antinukeconfig','antinukebypass','antinukereset'].includes(name)) {
+  if (['antinuke','antinukestatus','antinukeconfig','antinukebypass','antinukewhitelist','antinukereset'].includes(name)) {
     if (name === 'antinukeconfig') { textOption(b,'action'); textOption(b,'value'); }
-    if (name === 'antinukebypass') { b.addUserOption(o=>o.setName('user').setDescription('Trusted member').setRequired(true)); textOption(b,'action'); }
+    if (name === 'antinukebypass' || name === 'antinukewhitelist') { b.addUserOption(o=>o.setName('user').setDescription('Trusted member').setRequired(true)); b.addStringOption(o=>o.setName('action').setDescription('Add or remove').setRequired(true).addChoices({name:'Add',value:'add'},{name:'Remove',value:'remove'})); }
   }
   if (name === 'rolecreate') textOption(b,'name');
   if (name === 'roledelete') b.addRoleOption(o=>o.setName('role').setDescription('Role').setRequired(true));
@@ -152,12 +154,12 @@ export async function handleHelpInteraction(i,client) {
 async function moderate(i,name) {
   if(!guildOnly(i))return true;
   const m=i.options.getMember('user'); if(!m)return styledReply(i, {content:'Member not found.',ephemeral:true});
-  if(name==='ban'){await m.ban({reason:i.options.getString('reason')||'Lightcore'});return styledReply(i, '🔨 Banned '+m.user.tag);}
-  if(name==='unban'){const u=i.options.getUser('user');if(!u)return styledReply(i, {content:'User not found.',ephemeral:true});await i.guild.bans.remove(u.id);return styledReply(i, '🔓 Unbanned '+u.tag);}
-  if(name==='kick'){await m.kick(i.options.getString('reason')||'Lightcore');return styledReply(i, '👢 Kicked '+m.user.tag);}
-  if(name==='timeout'){const n=i.options.getInteger('minutes');await m.timeout(n*60000,'Lightcore');return styledReply(i, '⏱️ Timed out '+m.user.tag+' for '+n+' minutes.');}
-  if(name==='untimeout'){await m.timeout(null,'Lightcore');return styledReply(i, '▶️ Timeout removed.');}
-  if(name==='warn'){const k=key(i.guild.id,m.id),a=state.warnings.get(k)||[];a.push({reason:i.options.getString('reason')||'No reason',at:Date.now()});state.warnings.set(k,a);return styledReply(i, '⚠️ Warned '+m.user.tag+'. Total: '+a.length);}
+  if(name==='ban'){const reason=i.options.getString('reason')||'Lightcore';await m.ban({reason});await logModerationAction(i.guild,{action:'Ban',staff:i.user,target:m.user,reason});return styledReply(i, '🔨 Banned '+m.user.tag);}
+  if(name==='unban'){const u=i.options.getUser('user');if(!u)return styledReply(i, {content:'User not found.',ephemeral:true});await i.guild.bans.remove(u.id);await logModerationAction(i.guild,{action:'Unban',staff:i.user,target:u,reason:'Lightcore'});return styledReply(i, '🔓 Unbanned '+u.tag);}
+  if(name==='kick'){const reason=i.options.getString('reason')||'Lightcore';await m.kick(reason);await logModerationAction(i.guild,{action:'Kick',staff:i.user,target:m.user,reason});return styledReply(i, '👢 Kicked '+m.user.tag);}
+  if(name==='timeout'){const n=i.options.getInteger('minutes');const reason='Lightcore';await m.timeout(n*60000,reason);await logModerationAction(i.guild,{action:'Timeout',staff:i.user,target:m.user,reason,duration:n+' minutes'});return styledReply(i, '⏱️ Timed out '+m.user.tag+' for '+n+' minutes.');}
+  if(name==='untimeout'){await m.timeout(null,'Lightcore');await logModerationAction(i.guild,{action:'Timeout Removed',staff:i.user,target:m.user,reason:'Lightcore'});return styledReply(i, '▶️ Timeout removed.');}
+  if(name==='warn'){const k=key(i.guild.id,m.id),a=state.warnings.get(k)||[];const reason=i.options.getString('reason')||'No reason';a.push({reason,at:Date.now(),staff:i.user.id});state.warnings.set(k,a);await logModerationAction(i.guild,{action:'Warn',staff:i.user,target:m.user,reason,extra:'Total warnings: '+a.length});return styledReply(i, '⚠️ Warned '+m.user.tag+'. Total: '+a.length);}
   if(name==='warnings'){const a=state.warnings.get(key(i.guild.id,m.id))||[];return styledReply(i, '⚠️ '+m.user.tag+' has '+a.length+' warning(s).\\n'+a.map((x,n)=>(n+1)+'. '+x.reason).join('\\n'));}
   if(name==='clearwarnings'){state.warnings.delete(key(i.guild.id,m.id));return styledReply(i, '🧹 Warnings cleared.');}
   if(name==='nick'){await m.setNickname(i.options.getString('nickname'));return styledReply(i, '✏️ Nickname updated.');}
@@ -166,6 +168,7 @@ async function moderate(i,name) {
 export async function handle(i,client) {
   const n=i.commandName;
   if(n==='help')return styledReply(i, buildHelpPayload());
+  if(n==='setupall'){if(!guildOnly(i))return;const created=await setupSecurityChannels(i.guild);return styledReply(i,{title:'🛡️ Lightcore Security Setup',content:created.message+'\\n\\n**Auto-created channels:**\\n'+getSecurityChannelNames().map(x=>'• #'+x).join('\\n')+'\\n\\n**Required bot permissions:**\\n• View Audit Log\\n• Manage Channels\\n• Manage Roles\\n• Kick Members\\n• Ban Members\\n• Moderate Members\\n• Manage Webhooks'});}
   if(n==='ping')return styledReply(i, '🏓 Pong! '+client.ws.ping+'ms');
   if(n==='uptime')return styledReply(i, '⏱️ Uptime: '+Math.floor(process.uptime())+' seconds');
   if(n==='botinfo')return styledReply(i, '## ⚡ Lightcore\\nDiscord.js: 14.27.0\\nRegistered commands: '+REGISTERED.length+'\\nNode: '+process.version);
@@ -182,7 +185,7 @@ export async function handle(i,client) {
   if(n==='support')return styledReply(i, {title:'🆘 Lightcore Support',content:'Need help, bug reports, setup assistance, or feature support?\\n\\n**Permanent support server:**\\nhttps://discord.gg/Ehmqr5drSz'});
   if(n==='remind'||n==='timer'){const ms=durationMs(i.options.getString('duration'));if(!ms)return styledReply(i, {content:'Use 10s, 5m, 1h, or 1d.',ephemeral:true});const msg=n==='remind'?i.options.getString('message'):'Timer finished';await styledReply(i, '⏰ Timer started.');setTimeout(()=>styledFollowUp(i, '⏰ <@'+i.user.id+'> '+msg).catch(()=>{}),ms);return;}
   if(n==='afk'){if(!guildOnly(i))return;const k=key(i.guild.id,i.user.id);if(state.afk.delete(k))return styledReply(i, '👋 AFK removed.');state.afk.set(k,Date.now());return styledReply(i, '💤 AFK enabled.');}
-  if(['antinuke','antinukestatus','antinukeconfig','antinukebypass','antinukereset'].includes(n)){ if(!guildOnly(i))return; if(!i.memberPermissions?.has(PermissionFlagsBits.ManageGuild) && i.user.id!==ownerId)return styledReply(i,{content:'You need Manage Server.',ephemeral:true}); if(n==='antinuke')return styledReply(i,{title:'🛡️ Anti-Nuke',content:'Use **.antinukeconfig** to enable protection and configure limits.'}); if(n==='antinukestatus')return styledReply(i, antiNukeStatusText(i.guild.id)); if(n==='antinukereset'){resetAntiNuke(i.guild.id);return styledReply(i,'🛡️ Anti-Nuke configuration reset to safe defaults.');} if(n==='antinukebypass'){const u=i.options.getUser('user');const action=i.options.getString('action')||'add';changeAntiNukeBypass(i.guild.id,u.id,action);return styledReply(i, antiNukeBypassText(i.guild.id,u.id,action));} if(n==='antinukeconfig'){const action=i.options.getString('action'),value=i.options.getString('value');configureAntiNuke(i.guild.id,action,value);return styledReply(i, antiNukeConfigText(i.guild.id,action,value));} }
+  if(['antinuke','antinukestatus','antinukeconfig','antinukebypass','antinukewhitelist','antinukereset'].includes(n)){ if(!guildOnly(i))return; if(!i.memberPermissions?.has(PermissionFlagsBits.ManageGuild) && i.user.id!==ownerId)return styledReply(i,{content:'You need Manage Server.',ephemeral:true}); if(n==='antinuke')return styledReply(i,{title:'🛡️ Anti-Nuke',content:'Use **.antinukeconfig** to enable protection and configure limits.'}); if(n==='antinukestatus')return styledReply(i, antiNukeStatusText(i.guild.id)); if(n==='antinukereset'){resetAntiNuke(i.guild.id);return styledReply(i,'🛡️ Anti-Nuke configuration reset to safe defaults.');} if(n==='antinukebypass'||n==='antinukewhitelist'){const u=i.options.getUser('user');const action=i.options.getString('action')||'add';changeAntiNukeBypass(i.guild.id,u.id,action);return styledReply(i,{title:'🛡️ Anti-Nuke Whitelist',content:antiNukeWhitelistText(i.guild.id,u.id,action)});} if(n==='antinukeconfig'){const action=i.options.getString('action'),value=i.options.getString('value');configureAntiNuke(i.guild.id,action,value);return styledReply(i, antiNukeConfigText(i.guild.id,action,value));} }
   if(['ban','unban','kick','timeout','untimeout','warn','warnings','clearwarnings','nick'].includes(n))return moderate(i,n);
   if(n==='purge'){if(!guildOnly(i))return;const x=await i.channel.bulkDelete(i.options.getInteger('amount'),true);return styledReply(i, {content:'🧹 Deleted '+x.size+' messages.',ephemeral:true});}
   if(n==='slowmode'){if(!guildOnly(i))return;await i.channel.setRateLimitPerUser(i.options.getInteger('seconds'));return styledReply(i, '🐢 Slowmode updated.');}
