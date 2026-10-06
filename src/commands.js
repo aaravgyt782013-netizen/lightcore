@@ -11,6 +11,72 @@ const categoryEmoji = {
   image: '🖼️', ai: '🧠', owner: '👑'
 };
 
+const COMMAND_DESCRIPTIONS = {
+  help: 'Show this interactive help menu',
+  ping: 'Check the bot latency',
+  uptime: 'Show how long the bot has been online',
+  botinfo: 'Show information about Lightcore',
+  serverinfo: 'Show information about this server',
+  userinfo: 'Show information about a user',
+  avatar: 'Show a user’s avatar',
+  membercount: 'Show the server member count',
+  roles: 'List the server roles',
+  channels: 'List the server channels',
+  ban: 'Ban a member from the server',
+  unban: 'Unban a previously banned user',
+  kick: 'Kick a member from the server',
+  timeout: 'Temporarily timeout a member',
+  warn: 'Warn a member',
+  warnings: 'View a member’s warnings',
+  purge: 'Delete multiple messages',
+  slowmode: 'Set the channel slowmode',
+  lock: 'Lock the current channel',
+  unlock: 'Unlock the current channel',
+  announce: 'Send an announcement message',
+  say: 'Make Lightcore send a message',
+  poll: 'Create a poll',
+  ticket: 'Create or manage a support ticket',
+  giveaway: 'Start a giveaway',
+  balance: 'Check your economy balance',
+  daily: 'Claim your daily reward',
+  pay: 'Pay another user',
+  shop: 'View the server shop',
+  inventory: 'View your inventory',
+  rank: 'View your level and rank',
+  level: 'View your current level',
+  leaderboard: 'View the economy leaderboard',
+  '8ball': 'Ask the magic 8-ball a question',
+  coin: 'Flip a coin',
+  dice: 'Roll a dice',
+  roll: 'Roll a random number',
+  choose: 'Choose between multiple options',
+  joke: 'Get a random joke',
+  meme: 'Get a random meme',
+  trivia: 'Play a trivia game',
+  play: 'Play music in a voice channel',
+  pause: 'Pause the current music',
+  resume: 'Resume paused music',
+  skip: 'Skip the current track',
+  queue: 'Show the music queue',
+  nowplaying: 'Show the currently playing track',
+  ai: 'Ask Lightcore AI something',
+  ask: 'Ask an AI question',
+  remind: 'Create a reminder',
+  timer: 'Start a timer',
+  afk: 'Set your AFK status',
+  automod: 'Configure automatic moderation',
+  antinuke: 'Configure anti-nuke protection',
+  security: 'View security settings',
+  logging: 'Configure server logging',
+  welcome: 'Configure welcome messages',
+  invite: 'Create or view the bot invite',
+  support: 'Get Lightcore support information'
+};
+
+function commandDescription(name) {
+  return COMMAND_DESCRIPTIONS[name] || `Use the ${name.replace(/-/g, ' ')} feature`;
+}
+
 function buildHelpPayload(selectedCategory = 'overview') {
   const groups = {};
   for (const item of CATALOG) (groups[item.category] ||= []).push(item.name);
@@ -35,7 +101,7 @@ function buildHelpPayload(selectedCategory = 'overview') {
   } else {
     const names = groups[selectedCategory] || [];
     description = names.length
-      ? names.map(name => `**/${name}**  •  .${name}  •  ${name}`).join('\\\\n')
+      ? names.map(name => `**/${name}** — ${commandDescription(name)}`).join('\\\\n')
       : 'No commands are listed in this category.';
   }
 
