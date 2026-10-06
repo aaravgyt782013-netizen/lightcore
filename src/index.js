@@ -132,8 +132,19 @@ client.on('voiceStateUpdate', (oldState,newState) => {
   if(oldState.channelId && !newState.channelId){const started=voiceSessions.get(key);if(started)addVoiceSeconds(gid,id,(Date.now()-started)/1000);voiceSessions.delete(key);}
 });
 
+const LOG_EVENT_KEYS={
+  'Moderation Action':'moderation','Ban':'ban','Unban':'unban','Kick':'kick','Timeout':'timeout','Warn':'warn',
+  'Member Joined':'member_add','Member Left':'member_remove','Member Updated':'member_update',
+  'Message Deleted':'message_delete','Message Edited':'message_update',
+  'Voice Joined':'voice_join','Voice Left':'voice_leave','Voice Moved':'voice_move',
+  'Server Updated':'guild_update','Channel Created':'channel_create','Channel Deleted':'channel_delete','Channel Updated':'channel_update',
+  'Role Created':'role_create','Role Deleted':'role_delete','Role Updated':'role_update',
+  'Member Banned':'ban','Member Unbanned':'unban','AutoMod Triggered':'automod','Anti-Nuke Triggered':'antinuke',
+  'Ticket':'ticket','Giveaway':'giveaway'
+};
 async function sendConfiguredLog(guild,event,text){
-  const channelId=getLogChannel(guild.id,event);
+  const key=LOG_EVENT_KEYS[event]||String(event).toLowerCase().replace(/\\s+/g,'_');
+  const channelId=getLogChannel(guild.id,key);
   if(!channelId)return;
   const ch=guild.channels.cache.get(channelId)||await guild.channels.fetch(channelId).catch(()=>null);
   if(ch?.isTextBased() && ch.permissionsFor(guild.members.me)?.has([PermissionFlagsBits.ViewChannel,PermissionFlagsBits.SendMessages]))
