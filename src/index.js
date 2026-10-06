@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import http from 'node:http';
 import { Client, GatewayIntentBits, Partials } from 'discord.js';
-import { handle, REGISTERED, handleHelpInteraction, handleTicketInteraction, commandUsagePayload } from './commands.js';
+import { handle, REGISTERED, handleHelpInteraction, handleTicketInteraction, handleCategoryDeleteInteraction, commandUsagePayload } from './commands.js';
 import { recordMessage, recordCommand, recordJoin, recordLeave, addVoiceSeconds } from './stats.js';
 import { getLogConfig, getLogChannel } from './logs.js';
 import { runAutoResponder, runAutoReactor } from './auto.js';
@@ -222,6 +222,13 @@ client.on('interactionCreate', async (interaction) => {
     return interaction.reply({content:'🎉 You entered the giveaway!',ephemeral:true});
   }
   if (interaction.isButton() || interaction.isStringSelectMenu()) {
+    try {
+      if (await handleCategoryDeleteInteraction(interaction, client)) return;
+    } catch (error) {
+      console.error('Category delete component error:', error);
+      if (!interaction.replied && !interaction.deferred) await styledReply(interaction,{content:'💥 Category delete error.',ephemeral:true}).catch(() => {});
+      return;
+    }
     try {
       if (await handleHelpInteraction(interaction, client)) return;
       if (await handleTicketInteraction(interaction, client)) return;
