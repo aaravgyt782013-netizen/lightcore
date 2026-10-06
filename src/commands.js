@@ -4,6 +4,7 @@ import {
   StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, ContainerBuilder,
   TextDisplayBuilder, SeparatorBuilder, MessageFlags, EmbedBuilder
 } from 'discord.js';
+import { styledReply, styledFollowUp, styledEditReply } from './ui.js';
 import { playMusic, pauseMusic, resumeMusic, skipMusic, stopMusic, getQueue } from './music.js';
 import { grantPremium, revokePremium, listPremium, premiumExpiry, grantNoPrefix, revokeNoPrefix, hasNoPrefix } from './premium.js';
 import { setWelcome, clearWelcome, getWelcome, setAutoresponder, removeAutoresponder, getAutoresponders } from './server-config.js';
@@ -112,24 +113,6 @@ const setWallet=(g,u,n)=>state.balances.set(key(g,u),Math.max(0,n));
 const xpRow=(g,u)=>{const k=key(g,u);if(!state.xp.has(k))state.xp.set(k,{xp:0,level:0});return state.xp.get(k);};
 const addXp=(g,u,n)=>{const r=xpRow(g,u);r.xp+=n;r.level=Math.floor(r.xp/100);return r;};
 
-function cardPayload(payload, fallbackTitle='Lightcore') {
-  if (payload && typeof payload === 'object' && payload.components && payload.flags !== undefined) return payload;
-  const isObject = payload && typeof payload === 'object';
-  const raw = isObject ? (payload.content ?? '') : String(payload ?? '');
-  const title = isObject && payload.title ? String(payload.title) : fallbackTitle;
-  const description = raw || 'Done.';
-  const box = new ContainerBuilder()
-    .setAccentColor(0x5865F2)
-    .addTextDisplayComponents(new TextDisplayBuilder().setContent('## ⚡ '+title))
-    .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
-    .addTextDisplayComponents(new TextDisplayBuilder().setContent(description));
-  const originalFlags = isObject && typeof payload.flags === 'number' ? payload.flags : 0;
-  const flags = originalFlags | MessageFlags.IsComponentsV2 | (isObject && payload.ephemeral ? MessageFlags.Ephemeral : 0);
-  return { components: [box], flags, allowedMentions: isObject?.allowedMentions || { parse: ['users', 'roles'] } };
-}
-function styledReply(interaction, payload) { return interaction.reply(cardPayload(payload)); }
-function styledFollowUp(interaction, payload) { return interaction.followUp(cardPayload(payload)); }
-function styledEditReply(interaction, payload) { return interaction.editReply(cardPayload(payload)); }
 
 const guildOnly=i=>{if(!i.guild){styledReply(i, {content:'This command is server-only.',ephemeral:true});return false;}return true;};
 
