@@ -26,6 +26,8 @@ const AUTO_REACTOR = {
   'well played': ['👏']
 };
 
+import { getAutoresponders } from './server-config.js';
+
 const COOLDOWN_MS = 3000;
 const responderCooldown = new Map();
 const reactorCooldown = new Map();
@@ -44,13 +46,15 @@ function allowed(map, key) {
 }
 
 export async function runAutoResponder(message) {
-  const trigger = findTrigger(message.content, AUTO_RESPONDER);
+  const custom = message.guildId ? getAutoresponders(message.guildId) : {};
+  const rules = { ...AUTO_RESPONDER, ...custom };
+  const trigger = findTrigger(message.content, rules);
   if (!trigger) return;
 
   const key = `${message.guildId}:${message.author.id}:${trigger}`;
   if (!allowed(responderCooldown, key)) return;
 
-  await message.reply(AUTO_RESPONDER[trigger]).catch(() => {});
+  await message.reply(rules[trigger]).catch(() => {});
 }
 
 export async function runAutoReactor(message) {
