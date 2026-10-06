@@ -1,7 +1,9 @@
 import 'dotenv/config';
 import http from 'node:http';
 import { Client, GatewayIntentBits, Partials } from 'discord.js';
-import { handle, REGISTERED, handleHelpInteraction } from './commands.js';
+import { handle, REGISTERED, handleHelpInteraction, handleTicketInteraction } from './commands.js';
+import { recordMessage, recordCommand, recordJoin, recordLeave, addVoiceSeconds } from './stats.js';
+import { getLogConfig } from './logs.js';
 import { runAutoResponder, runAutoReactor } from './auto.js';
 import { hasNoPrefix } from './premium.js';
 import { getWelcome } from './server-config.js';
@@ -32,6 +34,7 @@ function renderWelcome(template, member) {
 }
 
 client.on('guildMemberAdd', async (member) => {
+  recordJoin(member.guild.id, member.id);
   if (member.user.bot) return;
   const cfg = getWelcome(member.guild.id);
   if (!cfg.channelId) return;
@@ -39,6 +42,18 @@ client.on('guildMemberAdd', async (member) => {
   if (!channel?.isTextBased()) return;
   await channel.send(renderWelcome(cfg.message, member)).catch(() => {});
 });
+
+client.on('guildMemberRemove', member => { if(!member.user.bot) recordLeave(member.guild.id,member.id); });
+
+const voiceSessions = new Map();
+client.on('voiceStateUpdate', (oldState,newState) => {
+  const id=newState.member?.id||oldState.member?.id; const gid=newState.guild?.id||oldState.guild?.id; if(!id||!gid)return;
+  const key=gid+':'+id;
+  if(!oldState.channelId && newState.channelId) voiceSessions.set(key,Date.now());
+  if(oldState.channelId && !newState.channelId){const started=voiceSessions.get(key);if(started)addVoiceSeconds(gid,id,(Date.now()-started)/1000);voiceSessions.delete(key);}
+});
+
+async function sendConfiguredLog(guild,event,text){const cfg=getLogConfig(guild.id);if(!cfg?.channel_id)return;const ch=guild.channels.cache.get(cfg.channel_id);if(ch?.isTextBased())await ch.send('📜 **'+event+'**\\n'+text).catch(()=>{});}
 
 client.on('guildDelete', async (guild) => {
   const support = process.env.SUPPORT_URL || supportUrl;
@@ -55,6 +70,7 @@ client.on('interactionCreate', async (interaction) => {
   if (interaction.isButton() || interaction.isStringSelectMenu()) {
     try {
       if (await handleHelpInteraction(interaction, client)) return;
+      if (await handleTicketInteraction(interaction, client)) return;
     } catch (error) {
       console.error('Help component error:', error);
       if (!interaction.replied && !interaction.deferred) await interaction.reply({content:'💥 Help menu error.', ephemeral:true}).catch(() => {});
@@ -128,6 +144,7 @@ function createMessageInteraction(message, commandName, args) {
 
 client.on('messageCreate', async (message) => {
   if (message.author.bot || !message.guild) return;
+  recordMessage(message.guild.id,message.author.id);
   await Promise.allSettled([runAutoResponder(message), runAutoReactor(message)]);
   const raw = message.content.trim();
   if (!raw) return;
@@ -138,7 +155,7 @@ client.on('messageCreate', async (message) => {
   const parts = commandText.split(/\s+/);
   const commandName = parts.shift()?.toLowerCase();
   if (!commandName || !REGISTERED.some(c => c.name === commandName)) return;
-  try { await handle(createMessageInteraction(message, commandName, parts), client); }
+  try { recordCommand(message.guild.id,message.author.id); await handle(createMessageInteraction(message, commandName, parts), client); }
   catch (error) { console.error('Prefix/no-prefix command error:', error); await message.reply('💥 Something went wrong while running that command.').catch(() => {}); }
 });
 
