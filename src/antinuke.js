@@ -12,3 +12,13 @@ export function antiNukeStatusText(gid){const r=row(gid);return '**Protection:**
 export function antiNukeConfigText(gid,action,value){const r=configureAntiNuke(gid,action,value);return '🛡️ **Anti-Nuke updated**\n`'+action+'` → `'+(value??'updated')+'`\n\nProtection: **'+(r.enabled?'ON':'OFF')+'** • Response: `'+r.action+'`';}
 export function antiNukeBypassText(gid,uid,action){return '🛡️ Trusted bypass **'+(action==='remove'?'removed':'added')+'** for <@'+uid+'>.';}
 export function antiNukeThreshold(gid,event){const r=row(gid);return Number(r[event]||r.threshold);}
+const buckets=new Map();
+export function antiNukeCheck(gid,actorId,event){
+  const cfg=row(gid);
+  if(!cfg.enabled || cfg.bypass.includes(actorId)) return {triggered:false,config:cfg,count:0};
+  const now=Date.now(), key=gid+':'+actorId+':'+event;
+  const arr=(buckets.get(key)||[]).filter(t=>now-t<cfg.window_ms);
+  arr.push(now); buckets.set(key,arr);
+  const threshold=Number(cfg[event]||cfg.threshold);
+  return {triggered:arr.length>=threshold,config:cfg,count:arr.length};
+}
