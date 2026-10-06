@@ -200,7 +200,12 @@ export function makeCommand(name, category) {
     b.addSubcommand(s=>s.setName('grant').setDescription('Grant access').addUserOption(o=>o.setName('user').setDescription('User').setRequired(true)).addIntegerOption(o=>o.setName('days').setDescription('Days').setMinValue(1).setMaxValue(3650)));
     b.addSubcommand(s=>s.setName('revoke').setDescription('Revoke access').addUserOption(o=>o.setName('user').setDescription('User').setRequired(true)));
     b.addSubcommand(s=>s.setName('status').setDescription('Check access').addUserOption(o=>o.setName('user').setDescription('User').setRequired(true)));
-    if (name === 'premium') b.addSubcommand(s=>s.setName('list').setDescription('List premium grants'));
+    if (name === 'premium') {
+      b.addSubcommand(s=>s.setName('grantserver').setDescription('Grant Premium to this server').addIntegerOption(o=>o.setName('days').setDescription('Days').setMinValue(1).setMaxValue(3650)));
+      b.addSubcommand(s=>s.setName('revokeserver').setDescription('Revoke Premium from this server'));
+      b.addSubcommand(s=>s.setName('serverstatus').setDescription('Check this server Premium status'));
+      b.addSubcommand(s=>s.setName('list').setDescription('List premium grants'));
+    }
   }
   return b;
 }
@@ -342,7 +347,7 @@ export async function handle(i,client) {
   if(n==='counters'){if(!guildOnly(i))return;const rows=listCounters(i.guild.id);return styledReply(i, '## 📊 Live Counters\n'+(rows.length?rows.map(r=>'• <#'+r.channel_id+'> — '+r.type+' — '+r.template).join('\n'):'No counters configured.'));}
   if(n==='counterremove'){if(!guildOnly(i))return;const ch=i.options.getChannel('channel');removeCounter(i.guild.id,ch.id);return styledReply(i, '🗑️ Counter removed.');}
   if(['best','worst','loved','hated'].includes(n)){const u=i.options.getUser?.('user')||i.user;const title={best:'best at something',worst:'worst at something',loved:'most loved',hated:'most likely to be playfully hated'}[n];return styledReply(i, '🎭 Playful title only — not a real judgment.\n'+u+' is the server’s '+title+' today!');}
-  if(n==='premium'||n==='noprefix'){if(i.user.id!==ownerId)return styledReply(i, {content:'Owner only.',ephemeral:true});const sub=i.options.getSubcommand(),u=i.options.getUser('user');if(sub==='grant'){const d=i.options.getInteger('days');n==='premium'?grantPremium('user',u.id,d):grantNoPrefix('user',u.id,d);return styledReply(i, '👑 Granted '+n+' to <@'+u.id+'>.');}if(sub==='revoke'){n==='premium'?revokePremium('user',u.id):revokeNoPrefix('user',u.id);return styledReply(i, '🧹 Revoked '+n+'.');}if(sub==='status')return styledReply(i, '👑 '+n+': '+(n==='premium'?Boolean(premiumExpiry('user',u.id)):hasNoPrefix(u.id,i.guildId)));if(sub==='list')return styledReply(i, '👑 Premium grants: '+listPremium().length);}
+  if(n==='premium'||n==='noprefix'){if(i.user.id!==ownerId)return styledReply(i, {content:'Owner only.',ephemeral:true});const sub=i.options.getSubcommand(),u=i.options.getUser('user');if(n==='premium'&&sub==='grantserver'){if(!guildOnly(i))return;const d=i.options.getInteger('days');grantPremium('guild',i.guild.id,d);return styledReply(i,'👑 Granted Premium to this server'+(d?' for '+d+' days':' permanently')+'.');}if(n==='premium'&&sub==='revokeserver'){if(!guildOnly(i))return;revokePremium('guild',i.guild.id);return styledReply(i,'🧹 Server Premium revoked.');}if(n==='premium'&&sub==='serverstatus'){if(!guildOnly(i))return;return styledReply(i,'👑 Server Premium: **'+(isPremium('0',i.guild.id)?'Active':'Inactive')+'**');}if(sub==='grant'){const d=i.options.getInteger('days');n==='premium'?grantPremium('user',u.id,d):grantNoPrefix('user',u.id,d);return styledReply(i, '👑 Granted '+n+' to <@'+u.id+'>.');}if(sub==='revoke'){n==='premium'?revokePremium('user',u.id):revokeNoPrefix('user',u.id);return styledReply(i, '🧹 Revoked '+n+'.');}if(sub==='status')return styledReply(i, '👑 '+n+': '+(n==='premium'?Boolean(premiumExpiry('user',u.id)):hasNoPrefix(u.id,i.guildId)));if(sub==='list')return styledReply(i, '👑 Premium grants: '+listPremium().length);}
   return styledReply(i, {content:'This command is not available in the current core.',ephemeral:true});
 }
 
