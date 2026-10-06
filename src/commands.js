@@ -182,7 +182,7 @@ export async function handle(i,client) {
   if(n==='slowmode'){if(!guildOnly(i))return;await i.channel.setRateLimitPerUser(i.options.getInteger('seconds'));return styledReply(i, '🐢 Slowmode updated.');}
   if(n==='lock'||n==='unlock'){if(!guildOnly(i))return;await i.channel.permissionOverwrites.edit(i.guild.roles.everyone,{SendMessages:n==='lock'?false:null});return styledReply(i, n==='lock'?'🔒 Locked.':'🔓 Unlocked.');}
   if(n==='say'||n==='announce')return styledReply(i, (n==='announce'?'📢 ':'')+i.options.getString('text'));
-  if(n==='poll'){const e=new EmbedBuilder().setTitle('📊 '+i.options.getString('question')).setDescription(i.options.getString('options').split('|').map((x,k)=>(k+1)+'. '+x.trim()).join('\\n'));return styledReply(i, {embeds:[e]});}
+  if(n==='poll'){const question=i.options.getString('question');const options=i.options.getString('options').split('|').map((x,k)=>(k+1)+'. '+x.trim()).join('\\n');return styledReply(i, {title:'📊 Poll',content:'**'+question+'**\\n\\n'+options});}
   if(n==='rolecreate'){if(!guildOnly(i))return;const r=await i.guild.roles.create({name:i.options.getString('name'),reason:'Lightcore'});return styledReply(i, '🎭 Created <@&'+r.id+'>.');}
   if(n==='roledelete'){if(!guildOnly(i))return;await i.options.getRole('role').delete('Lightcore');return styledReply(i, '🗑️ Role deleted.');}
   if(n==='roleadd'||n==='roleremove'){if(!guildOnly(i))return;const m=i.options.getMember('user'),r=i.options.getRole('role');if(n==='roleadd')await m.roles.add(r);else await m.roles.remove(r);return styledReply(i, n==='roleadd'?'➕ Role added.':'➖ Role removed.');}
