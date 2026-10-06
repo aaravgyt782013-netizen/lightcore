@@ -17,7 +17,7 @@ const client = new Client({
   partials: [Partials.Channel, Partials.GuildMember, Partials.User]
 });
 
-client.once('ready', () => console.log('Lightcore 4.4.1 online as ' + client.user.tag));
+client.once('ready', () => console.log('Lightcore 4.4.2 online as ' + client.user.tag));
 
 client.on('interactionCreate', async (interaction) => {
   if (interaction.isButton() || interaction.isStringSelectMenu()) {
@@ -87,7 +87,7 @@ client.on('messageCreate', async (message) => {
 const server = http.createServer((req, res) => {
   if (req.url === '/health' || req.url === '/') {
     res.writeHead(200, { 'content-type': 'application/json' });
-    res.end(JSON.stringify({ ok: true, bot: 'Lightcore', version: '4.4.1', ready: client.isReady() }));
+    res.end(JSON.stringify({ ok: true, bot: 'Lightcore', version: '4.4.2', ready: client.isReady() }));
     return;
   }
   res.writeHead(404); res.end('Not Found');
