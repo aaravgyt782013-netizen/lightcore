@@ -8,7 +8,7 @@ import { runAutoResponder, runAutoReactor } from './auto.js';
 import { hasNoPrefix } from './premium.js';
 import { getWelcome } from './server-config.js';
 import { cardMessage, styledReply } from './ui.js';
-import { logModerationAction } from './modlogs.js';
+import { logModerationAction, logAntiNukeKick } from './modlogs.js';
 import { AuditLogEvent, PermissionFlagsBits } from 'discord.js';
 import { antiNukeCheck, isAntiNukeBypassed } from './antinuke.js';
 
@@ -46,7 +46,16 @@ async function enforceAntiNuke(guild, auditType, eventKey, targetId) {
   const member=await guild.members.fetch(entry.executorId).catch(()=>null); if(!member||member.id===guild.ownerId)return;
   try {
     if(result.config.action==='ban')await member.ban({deleteMessageSeconds:0,reason:'Lightcore Anti-Nuke: excessive '+eventKey+' actions'});
-    else if(result.config.action==='kick')await member.kick('Lightcore Anti-Nuke: excessive '+eventKey+' actions');
+    else if(result.config.action==='kick'){
+      const reason='Lightcore Anti-Nuke: excessive '+eventKey+' actions';
+      let inviteUrl=null;
+      const inviteChannel=guild.systemChannel||guild.channels.cache.find(c=>c.isTextBased?.()&&c.permissionsFor(guild.members.me)?.has(PermissionFlagsBits.CreateInstantInvite));
+      if(inviteChannel?.createInvite) inviteUrl=(await inviteChannel.createInvite({maxAge:0,maxUses:0,unique:true,reason:'Anti-Nuke rejoin invite'}).catch(()=>null))?.url||null;
+      const dm='You were kicked by Lightcore Anti-Nuke because your account triggered the server protection system.\\n\\nYou can join again using this invite: '+(inviteUrl||'The server administrator will provide a new invite.')+'\\n\\nIf this was a mistake, contact the server staff.';
+      await member.send(dm).catch(()=>{});
+      await member.kick(reason);
+      await logAntiNukeKick(guild,member,entry.executorId,reason,inviteUrl);
+    }
     else { for(const role of member.roles.cache.values()){ if(role.editable&&(role.permissions.has(PermissionFlagsBits.Administrator)||role.permissions.has(PermissionFlagsBits.ManageGuild)))await member.roles.remove(role,'Lightcore Anti-Nuke: excessive '+eventKey+' actions').catch(()=>{}); } }
     await sendConfiguredLog(guild,'Anti-Nuke Triggered','<@'+member.id+'> triggered '+eventKey+' protection after '+result.count+' actions. Response: '+result.config.action+'.');
   } catch(error){console.error('[antinuke] enforcement failed:',error);}
