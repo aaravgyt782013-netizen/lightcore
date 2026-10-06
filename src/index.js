@@ -3,6 +3,7 @@ import http from 'node:http';
 import { Client, GatewayIntentBits, Partials } from 'discord.js';
 import { handle, CATALOG, handleHelpInteraction } from './commands.js';
 import { runAutoResponder, runAutoReactor } from './auto.js';
+import { hasNoPrefix } from './premium.js';
 
 const token = process.env.DISCORD_TOKEN;
 const port = Number(process.env.PORT || 3000);
@@ -72,7 +73,10 @@ client.on('messageCreate', async (message) => {
   await Promise.allSettled([runAutoResponder(message), runAutoReactor(message)]);
   const raw = message.content.trim();
   if (!raw) return;
-  const commandText = raw.startsWith(prefix) ? raw.slice(prefix.length).trim() : raw;
+  const explicitPrefix = raw.startsWith(prefix);
+  const noPrefixAllowed = hasNoPrefix(message.author.id, message.guildId);
+  if (!explicitPrefix && !noPrefixAllowed) return;
+  const commandText = explicitPrefix ? raw.slice(prefix.length).trim() : raw;
   const parts = commandText.split(/\s+/);
   const commandName = parts.shift()?.toLowerCase();
   if (!commandName || !CATALOG.some(c => c.name === commandName)) return;
