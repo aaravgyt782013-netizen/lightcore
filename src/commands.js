@@ -100,11 +100,11 @@ function buildHelpPayload(selectedCategory = 'overview') {
       ...Object.entries(groups).map(([cat, names]) =>
         `${categoryEmoji[cat] || '🔹'} **${cat.charAt(0).toUpperCase() + cat.slice(1)}** — ${names.length} commands`
       )
-    ].join('\\n');
+    ].join('\n');
   } else {
     const names = groups[selectedCategory] || [];
     description = names.length
-      ? names.map(name => `**/${name}** — ${commandDescription(name)}`).join('\\\\n')
+      ? names.map(name => `**/${name}** — ${commandDescription(name)}`).join('\n')
       : 'No commands are listed in this category.';
   }
 
