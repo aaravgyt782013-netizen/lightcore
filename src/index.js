@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import http from 'node:http';
 import { Client, GatewayIntentBits, Partials } from 'discord.js';
-import { handle, CATALOG } from './commands.js';
+import { handle, CATALOG, handleHelpInteraction } from './commands.js';
 import { runAutoResponder, runAutoReactor } from './auto.js';
 
 const token = process.env.DISCORD_TOKEN;
@@ -19,6 +19,15 @@ const client = new Client({
 client.once('ready', () => console.log('Lightcore 4.4.1 online as ' + client.user.tag));
 
 client.on('interactionCreate', async (interaction) => {
+  if (interaction.isButton() || interaction.isStringSelectMenu()) {
+    try {
+      if (await handleHelpInteraction(interaction, client)) return;
+    } catch (error) {
+      console.error('Help component error:', error);
+      if (!interaction.replied && !interaction.deferred) await interaction.reply({content:'💥 Help menu error.', ephemeral:true}).catch(() => {});
+    }
+    return;
+  }
   if (!interaction.isChatInputCommand()) return;
   try { await handle(interaction, client); }
   catch (error) {
@@ -52,7 +61,7 @@ function createMessageInteraction(message, commandName, args) {
     isChatInputCommand: () => true, commandName, user: message.author, member: message.member,
     memberPermissions: message.member?.permissions, guild: message.guild, channel: message.channel,
     client, options,
-    reply: async (payload) => message.reply((typeof payload === 'string' ? payload : payload?.content) || 'Command executed.'),
+    reply: async (payload) => message.reply(typeof payload === 'string' ? payload : payload),
     followUp: async (payload) => message.reply(payload?.content || String(payload)),
     replied: false, deferred: false
   };
