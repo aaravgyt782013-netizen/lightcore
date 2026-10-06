@@ -3,7 +3,7 @@ import http from 'node:http';
 import { Client, GatewayIntentBits, Partials } from 'discord.js';
 import { handle, REGISTERED, handleHelpInteraction, handleTicketInteraction, commandUsagePayload } from './commands.js';
 import { recordMessage, recordCommand, recordJoin, recordLeave, addVoiceSeconds } from './stats.js';
-import { getLogConfig } from './logs.js';
+import { getLogConfig, getLogChannel } from './logs.js';
 import { runAutoResponder, runAutoReactor } from './auto.js';
 import { hasNoPrefix } from './premium.js';
 import { getWelcome } from './server-config.js';
@@ -132,7 +132,71 @@ client.on('voiceStateUpdate', (oldState,newState) => {
   if(oldState.channelId && !newState.channelId){const started=voiceSessions.get(key);if(started)addVoiceSeconds(gid,id,(Date.now()-started)/1000);voiceSessions.delete(key);}
 });
 
-async function sendConfiguredLog(guild,event,text){const cfg=getLogConfig(guild.id);if(!cfg?.channel_id)return;const ch=guild.channels.cache.get(cfg.channel_id);if(ch?.isTextBased())await ch.send(cardMessage('📜 '+event,text)).catch(()=>{});}
+async function sendConfiguredLog(guild,event,text){
+  const channelId=getLogChannel(guild.id,event);
+  if(!channelId)return;
+  const ch=guild.channels.cache.get(channelId)||await guild.channels.fetch(channelId).catch(()=>null);
+  if(ch?.isTextBased() && ch.permissionsFor(guild.members.me)?.has([PermissionFlagsBits.ViewChannel,PermissionFlagsBits.SendMessages]))
+    await ch.send(cardMessage('📜 '+event,text)).catch(error=>console.error('[logs] send failed:',error.message));
+}
+function safeLogValue(value){return String(value??'').replace(/@everyone|@here/g,'').slice(0,1800);}
+
+client.on('messageDelete', async message => {
+  if(!message.guild || message.author?.bot)return;
+  await sendConfiguredLog(message.guild,'Message Deleted','**Author:** <@'+message.author?.id+'>\n**Channel:** <#'+message.channelId+'>\n**Content:** '+safeLogValue(message.content||'[content unavailable]'));
+});
+client.on('messageUpdate', async (oldMessage,newMessage) => {
+  if(!newMessage.guild || newMessage.author?.bot || oldMessage.content===newMessage.content)return;
+  await sendConfiguredLog(newMessage.guild,'Message Edited','**Author:** <@'+newMessage.author?.id+'>\n**Channel:** <#'+newMessage.channelId+'>\n**Before:** '+safeLogValue(oldMessage.content||'[empty]')+'\n**After:** '+safeLogValue(newMessage.content||'[empty]'));
+});
+client.on('guildMemberAdd', async member => {
+  if(member.user.bot)return;
+  await sendConfiguredLog(member.guild,'Member Joined','<@'+member.id+'> joined the server.\n**Account:** <t:'+Math.floor(member.user.createdTimestamp/1000)+':R>');
+});
+client.on('guildMemberRemove', async member => {
+  await sendConfiguredLog(member.guild,'Member Left','<@'+member.id+'> left or was removed from the server.');
+});
+client.on('guildMemberUpdate', async (oldMember,newMember) => {
+  const changes=[];
+  if(oldMember.nickname!==newMember.nickname)changes.push('Nickname: '+safeLogValue(oldMember.nickname||'None')+' → '+safeLogValue(newMember.nickname||'None'));
+  const oldRoles=oldMember.roles.cache.map(r=>r.id).sort().join(',');
+  const newRoles=newMember.roles.cache.map(r=>r.id).sort().join(',');
+  if(oldRoles!==newRoles)changes.push('Roles changed.');
+  if(changes.length)await sendConfiguredLog(newMember.guild,'Member Updated','<@'+newMember.id+'>\n'+changes.join('\n'));
+});
+client.on('channelCreate', async channel => { if(channel.guild) await sendConfiguredLog(channel.guild,'Channel Created','<#'+channel.id+'> **'+safeLogValue(channel.name)+'** was created.'); });
+client.on('channelDelete', async channel => { if(channel.guild) await sendConfiguredLog(channel.guild,'Channel Deleted','**'+safeLogValue(channel.name)+'** was deleted.'); });
+client.on('channelUpdate', async (oldChannel,newChannel) => {
+  if(!newChannel.guild)return;
+  const changes=[];
+  if(oldChannel.name!==newChannel.name)changes.push('Name: '+safeLogValue(oldChannel.name)+' → '+safeLogValue(newChannel.name));
+  if(oldChannel.parentId!==newChannel.parentId)changes.push('Category changed.');
+  if(changes.length)await sendConfiguredLog(newChannel.guild,'Channel Updated',changes.join('\n'));
+});
+client.on('roleCreate', async role => { await sendConfiguredLog(role.guild,'Role Created','<@&'+role.id+'> **'+safeLogValue(role.name)+'** was created.'); });
+client.on('roleDelete', async role => { await sendConfiguredLog(role.guild,'Role Deleted','**'+safeLogValue(role.name)+'** was deleted.'); });
+client.on('roleUpdate', async (oldRole,newRole) => {
+  const changes=[];
+  if(oldRole.name!==newRole.name)changes.push('Name: '+safeLogValue(oldRole.name)+' → '+safeLogValue(newRole.name));
+  if(oldRole.hexColor!==newRole.hexColor)changes.push('Color: '+oldRole.hexColor+' → '+newRole.hexColor);
+  if(changes.length)await sendConfiguredLog(newRole.guild,'Role Updated','<@&'+newRole.id+'>\n'+changes.join('\n'));
+});
+client.on('voiceStateUpdate', async (oldState,newState) => {
+  const member=newState.member||oldState.member;if(!member?.guild)return;
+  if(oldState.channelId===newState.channelId)return;
+  const from=oldState.channelId?'<#'+oldState.channelId+'>':'None';
+  const to=newState.channelId?'<#'+newState.channelId+'>':'None';
+  const event=newState.channelId&&!oldState.channelId?'Voice Joined':oldState.channelId&&!newState.channelId?'Voice Left':'Voice Moved';
+  await sendConfiguredLog(member.guild,event,'<@'+member.id+'>\n**From:** '+from+'\n**To:** '+to);
+});
+client.on('guildBanAdd', async ban => { await sendConfiguredLog(ban.guild,'Member Banned','<@'+ban.user.id+'> was banned.'); });
+client.on('guildBanRemove', async ban => { await sendConfiguredLog(ban.guild,'Member Unbanned','<@'+ban.user.id+'> was unbanned.'); });
+client.on('guildUpdate', async (oldGuild,newGuild) => {
+  const changes=[];
+  if(oldGuild.name!==newGuild.name)changes.push('Name: '+safeLogValue(oldGuild.name)+' → '+safeLogValue(newGuild.name));
+  if(oldGuild.icon!==newGuild.icon)changes.push('Server icon changed.');
+  if(changes.length)await sendConfiguredLog(newGuild,'Server Updated',changes.join('\n'));
+});
 
 client.on('channelCreate',ch=>{if(ch.guild)enforceAntiNuke(ch.guild,AuditLogEvent.ChannelCreate,'channel_create',ch.id);});
 client.on('channelDelete',ch=>{if(ch.guild)enforceAntiNuke(ch.guild,AuditLogEvent.ChannelDelete,'channel_delete',ch.id);});
