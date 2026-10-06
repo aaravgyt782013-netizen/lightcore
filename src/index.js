@@ -64,7 +64,7 @@ client.on('guildDelete', async (guild) => {
     target = guild.members.cache.find(m => m.permissions?.has('Administrator') || m.permissions?.has('ManageGuild'))?.user || null;
   }
   if (!target) return;
-  await target.send('⚠️ **Lightcore was removed from '+guild.name+'**.\nIt looks like the bot was kicked or otherwise removed from this server. Please review the setup and contact us on the Lightcore support server: '+support).catch(() => {});
+  await target.send(cardMessage('⚠️ Lightcore Removed','Lightcore was removed from **'+guild.name+'**.\n\nPlease review the server setup or contact the Lightcore support server: '+support)).catch(() => {});
 });
 
 client.on('interactionCreate', async (interaction) => {
@@ -138,7 +138,7 @@ function createMessageInteraction(message, commandName, args) {
     memberPermissions: message.member?.permissions, guild: message.guild, channel: message.channel,
     client, options,
     reply: async (payload) => message.reply(typeof payload === 'string' ? payload : payload),
-    followUp: async (payload) => message.reply(payload?.content || String(payload)),
+    followUp: async (payload) => message.reply(payload),
     replied: false, deferred: false
   };
 }
