@@ -89,10 +89,25 @@ export async function setupLogChannels(guild) {
   const antinuke = created.find(c => c.name === 'antinuke-logs');
   const ticket = created.find(c => c.name === 'ticket-logs');
 
-  if (mod) setLogChannel(guild.id, mod.id, 'moderation');
+  const member = created.find(c => c.name === 'member-logs');
+  const message = created.find(c => c.name === 'message-logs');
+  const voice = created.find(c => c.name === 'voice-logs');
+  const server = created.find(c => c.name === 'server-logs');
+  const channelLog = created.find(c => c.name === 'channel-logs');
+  const role = created.find(c => c.name === 'role-logs');
+  const giveaway = created.find(c => c.name === 'giveaway-logs');
+
+  if (mod) setLogChannel(guild.id, mod.id, 'moderation,mod');
+  if (member) setLogChannel(guild.id, member.id, 'member,member_add,member_remove,member_update');
+  if (message) setLogChannel(guild.id, message.id, 'message,message_delete,message_update');
+  if (voice) setLogChannel(guild.id, voice.id, 'voice,voice_join,voice_leave,voice_move');
+  if (server) setLogChannel(guild.id, server.id, 'server,guild_update,ban,unban');
+  if (channelLog) setLogChannel(guild.id, channelLog.id, 'channel,channel_create,channel_delete,channel_update');
+  if (role) setLogChannel(guild.id, role.id, 'role,role_create,role_delete,role_update');
   if (automod) setLogChannel(guild.id, automod.id, 'automod');
   if (antinuke) setLogChannel(guild.id, antinuke.id, 'antinuke');
-  if (ticket) setLogChannel(guild.id, ticket.id, 'tickets');
+  if (ticket) setLogChannel(guild.id, ticket.id, 'tickets,ticket');
+  if (giveaway) setLogChannel(guild.id, giveaway.id, 'giveaway,giveaways');
 
   const complete = created.length === LOG_CHANNELS.length;
 
