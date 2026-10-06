@@ -91,7 +91,7 @@ export function makeCommand(name, category) {
 }
 
 const key=(g,u)=>g+':'+u;
-const durationMs=(v)=>{const m=String(v||'').match(/^(\\d+)\\s*(s|m|h|d|w)$/i);return m?Number(m[1])*({s:1000,m:60000,h:3600000,d:86400000,w:604800000})[m[2].toLowerCase()]:null;};
+const durationMs=(v)=>{const m=String(v||'').match(/^(\d+)\s*(s|m|h|d|w)$/i);return m?Number(m[1])*({s:1000,m:60000,h:3600000,d:86400000,w:604800000})[m[2].toLowerCase()]:null;};
 const wallet=(g,u)=>{const k=key(g,u);if(!state.balances.has(k))state.balances.set(k,100);return state.balances.get(k);};
 const setWallet=(g,u,n)=>state.balances.set(key(g,u),Math.max(0,n));
 const xpRow=(g,u)=>{const k=key(g,u);if(!state.xp.has(k))state.xp.set(k,{xp:0,level:0});return state.xp.get(k);};
@@ -130,7 +130,7 @@ async function moderate(i,name) {
   if(!guildOnly(i))return true;
   const m=i.options.getMember('user'); if(!m)return i.reply({content:'Member not found.',ephemeral:true});
   if(name==='ban'){await m.ban({reason:i.options.getString('reason')||'Lightcore'});return i.reply('🔨 Banned '+m.user.tag);}
-  if(name==='unban'){await i.guild.bans.remove(m.id);return i.reply('🔓 Unbanned '+m.user.tag);}
+  if(name==='unban'){const u=i.options.getUser('user');if(!u)return i.reply({content:'User not found.',ephemeral:true});await i.guild.bans.remove(u.id);return i.reply('🔓 Unbanned '+u.tag);}
   if(name==='kick'){await m.kick(i.options.getString('reason')||'Lightcore');return i.reply('👢 Kicked '+m.user.tag);}
   if(name==='timeout'){const n=i.options.getInteger('minutes');await m.timeout(n*60000,'Lightcore');return i.reply('⏱️ Timed out '+m.user.tag+' for '+n+' minutes.');}
   if(name==='untimeout'){await m.timeout(null,'Lightcore');return i.reply('▶️ Timeout removed.');}
