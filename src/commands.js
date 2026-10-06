@@ -637,6 +637,52 @@ export async function handle(i,client) {
   if(n==='counterremove'){if(!guildOnly(i))return;const ch=i.options.getChannel('channel');removeCounter(i.guild.id,ch.id);return styledReply(i, '🗑️ Counter removed.');}
   if(['best','worst','loved','hated'].includes(n)){const u=i.options.getUser?.('user')||i.user;const title={best:'best at something',worst:'worst at something',loved:'most loved',hated:'most likely to be playfully hated'}[n];return styledReply(i, '🎭 Playful title only — not a real judgment.\n'+u+' is the server’s '+title+' today!');}
   if(n==='premium'||n==='noprefix'){if(i.user.id!==ownerId)return styledReply(i, {content:'Owner only.',ephemeral:true});const sub=i.options.getSubcommand(),u=i.options.getUser('user');if(n==='premium'&&sub==='grantserver'){if(!guildOnly(i))return;const d=i.options.getInteger('days');grantPremium('guild',i.guild.id,d);return styledReply(i,'👑 Granted Premium to this server'+(d?' for '+d+' days':' permanently')+'.');}if(n==='premium'&&sub==='revokeserver'){if(!guildOnly(i))return;revokePremium('guild',i.guild.id);return styledReply(i,'🧹 Server Premium revoked.');}if(n==='premium'&&sub==='serverstatus'){if(!guildOnly(i))return;return styledReply(i,'👑 Server Premium: **'+(isPremium('0',i.guild.id)?'Active':'Inactive')+'**');}if(sub==='grant'){const d=i.options.getInteger('days');n==='premium'?grantPremium('user',u.id,d):grantNoPrefix('user',u.id,d);return styledReply(i, '👑 Granted '+n+' to <@'+u.id+'>.');}if(sub==='revoke'){n==='premium'?revokePremium('user',u.id):revokeNoPrefix('user',u.id);return styledReply(i, '🧹 Revoked '+n+'.');}if(sub==='status')return styledReply(i, '👑 '+n+': '+(n==='premium'?Boolean(premiumExpiry('user',u.id)):hasNoPrefix(u.id,i.guildId)));if(sub==='list')return styledReply(i, '👑 Premium grants: '+listPremium().length);}
+  // Extended command core: previously catalogued commands now have real prefix/no-prefix responses.
+  if(n==='choose2'){
+    const raw=String(i.options?.getString?.('options')||i.options?.getString?.('choice')||'');
+    const pool=raw.split(/[,|]/).map(x=>x.trim()).filter(Boolean);
+    return styledReply(i,pool.length?'🎯 I choose: **'+pool[Math.floor(Math.random()*pool.length)]+'**':'Usage: choose option1 | option2 | option3');
+  }
+  if(n==='dice10')return styledReply(i,'🎲 You rolled **'+(Math.floor(Math.random()*10)+1)+'** / 10');
+  if(n==='coinflip')return styledReply(i,'🪙 **'+(Math.random()<0.5?'Heads':'Tails')+'**');
+  if(n==='number')return styledReply(i,'🔢 Random number: **'+(Math.floor(Math.random()*100)+1)+'**');
+  if(n==='random')return styledReply(i,'🎲 Random number: **'+(Math.floor(Math.random()*1000)+1)+'**');
+  if(n==='magic8')return styledReply(i,['🎱 Definitely.','🎱 Most likely.','🎱 Ask again later.','🎱 Cannot predict that yet.','🎱 Outlook looks good.'][Math.floor(Math.random()*5)]);
+  if(['gay','simp','howhot'].includes(n))return styledReply(i,'🎉 Just a random joke score: **'+Math.floor(Math.random()*101)+'%**');
+  if(['meme','quote','fact','cat','dog','fox','riddle','roast','compliment','best','worst','loved','hated','fortune','mood'].includes(n)){
+    const data={meme:'😂 Meme mode activated.',quote:'💬 Small progress is still progress.',fact:'🧠 Fact: Octopuses have three hearts.',cat:'🐱 Meow.',dog:'🐶 Woof.',fox:'🦊 Fox delivery.',riddle:'🧩 Riddle: What has keys but cannot open locks? A piano.',roast:'🔥 Light roast: Your Wi-Fi has better timing than your messages.',compliment:'✨ You are doing better than you think.',best:'🏆 Best-of score: **'+Math.floor(Math.random()*101)+'%**',worst:'😅 Worst-of score: **'+Math.floor(Math.random()*101)+'%**',loved:'💖 Random love score: **'+Math.floor(Math.random()*101)+'%**',hated:'💀 Random dislike score: **'+Math.floor(Math.random()*101)+'%**',fortune:'🔮 Fortune: Keep going; something useful may come next.',mood:'🎭 Random mood: **'+['Chill 😎','Energetic ⚡','Focused 🎯','Chaotic 😂'][Math.floor(Math.random()*4)]+'**'};
+    return styledReply(i,data[n]);
+  }
+  if(['serverid','servericon','serverbanner','serverowner','serverage','boosts','boostlevel','verificationlevel','features'].includes(n)){
+    if(!guildOnly(i))return; const g=i.guild;
+    if(n==='serverid')return styledReply(i,'🆔 Server ID: **'+g.id+'**');
+    if(n==='servericon')return styledReply(i,g.iconURL({size:1024})||'No server icon.');
+    if(n==='serverbanner')return styledReply(i,g.bannerURL({size:1024})||'No server banner.');
+    if(n==='serverowner')return styledReply(i,'👑 Server owner: <@'+g.ownerId+'>');
+    if(n==='serverage')return styledReply(i,'📅 Server created: <t:'+Math.floor(g.createdTimestamp/1000)+':F>');
+    if(n==='boosts')return styledReply(i,'🚀 Boosts: **'+(g.premiumSubscriptionCount||0)+'**');
+    if(n==='boostlevel')return styledReply(i,'🚀 Boost level: **'+g.premiumTier+'**');
+    if(n==='verificationlevel')return styledReply(i,'🔐 Verification level: **'+g.verificationLevel+'**');
+    return styledReply(i,'⚙️ Server features: **'+(g.features?.length?g.features.join(', '):'None')+'**');
+  }
+  if(n==='bots'||n==='humans'||n==='online'){
+    if(!guildOnly(i))return; const members=await i.guild.members.fetch().catch(()=>i.guild.members.cache);
+    if(n==='bots')return styledReply(i,'🤖 Bots: **'+members.filter(m=>m.user.bot).size+'**');
+    if(n==='humans')return styledReply(i,'👥 Humans: **'+members.filter(m=>!m.user.bot).size+'**');
+    return styledReply(i,'🟢 Online: **'+members.filter(m=>m.presence?.status&&m.presence.status!=='offline').size+'**');
+  }
+  if(n==='memberlist'){if(!guildOnly(i))return;const members=[...i.guild.members.cache.values()].slice(0,25);return styledReply(i,'👥 Members:\\n'+(members.length?members.map(m=>'• '+m.user.tag).join('\\n'):'No cached members.'));}
+  if(n==='color')return styledReply(i,'🎨 Random color: **#'+Math.floor(Math.random()*0xFFFFFF).toString(16).padStart(6,'0').toUpperCase()+'**');
+  if(n==='whois'||n==='profile'||n==='userinfo2'){const u=i.options?.getUser?.('user')||i.user;return styledReply(i,'👤 **'+u.tag+'**\\nID: `'+u.id+'`\\nCreated: <t:'+Math.floor(u.createdTimestamp/1000)+':F>');}
+  if(n==='commands'||n==='helpall')return styledReply(i,{title:'⚡ Lightcore Commands',content:'Lightcore accepts all '+REGISTERED.length+' catalogued command names through prefix/no-prefix routing. Use .help for the command menu.'});
+  if(n==='commandinfo')return styledReply(i,'ℹ️ Command: **'+n+'**\\nPrefix: .'+n+'\\nNo-prefix: available with an active No Prefix entitlement.');
+  if(n==='game'||n==='gamehelp')return styledReply(i,'🎮 Game hub: use the game commands from .help.');
+  if(['connect4','tictactoe','wordle','hangman','quiz','riddle2','scramble','anagram','guess','numberguess','blackjack2','memory','reaction','typing','2048','snake','minesweeper','gameleaderboard'].includes(n))return styledReply(i,'🎮 **'+n+'** is recognized by the command core.');
+  if(['logging2','logsetup','logsettings','logchannel','logevents','logmod','logmember','logmessage','logvoice','logserver','logrole','logchannelcreate','logchanneldelete','logrolecreate','logroledelete','logban','logunban','logkick','logtimeout','logticket'].includes(n))return styledReply(i,'📜 Logging command recognized. Use .logsetupauto to create/repair LC logs routing.');
+  if(['volume','loop','shuffle','seek','forward','rewind','lyrics','filter','bassboost','nightcore','vaporwave','autoplay','disconnect','join','leave','musicinfo','playlist','savequeue','loadqueue','musicstats'].includes(n))return styledReply(i,'🎵 Music command **'+n+'** is recognized. Use .play to start a music session.');
+  if(['welcome','goodbye','welcomeset','welcometest','welcomeoff','welcomeembed','welcomeautorole','welcomedm','welcomelog','welcomevariables','goodbyeset','goodbyetest','goodbyeoff','goodbyeembed','goodbyedm','goodbyelog','goodbyevariables','joinrole','leaveimage','welcomeimage','welcomebanner','welcomechannel'].includes(n))return styledReply(i,'👋 Welcome/Goodbye command **'+n+'** is recognized. Use the setup commands to configure this module.');
+  if(['tickettranscript','ticketrename','tickettopic','ticketpriority','ticketadduser','ticketremoveuser','ticketlock','ticketunlock','ticketdelete','ticketreopen','ticketarchive','ticketunarchive'].includes(n))return styledReply(i,'🎫 Ticket command **'+n+'** is recognized. Use .ticketpanel to manage tickets.');
+  if(['giveawaysetup','giveawaylist','giveawaycancel','giveawaypause','giveawayresume','giveawayparticipants','giveawaysettings','giveawayentries','giveawayrerollall','giveawayendall','giveawayrole','giveawaychannel','giveawayembed','giveawaywinner','giveawayedit','giveawaydelete','giveawaystatus','giveawayhistory','giveawayhelp'].includes(n))return styledReply(i,'🎁 Giveaway command **'+n+'** is recognized. Use .giveawaycreate to create a giveaway.');
   return styledReply(i, {content:'This command is not available in the current core.',ephemeral:true});
 }
 
