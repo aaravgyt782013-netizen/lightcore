@@ -1,508 +1,194 @@
-import { SlashCommandBuilder, PermissionFlagsBits, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, MessageFlags, ChannelType } from 'discord.js';
+
+import {
+  SlashCommandBuilder, PermissionFlagsBits, ChannelType, ActionRowBuilder,
+  StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, ContainerBuilder,
+  TextDisplayBuilder, SeparatorBuilder, MessageFlags, EmbedBuilder
+} from 'discord.js';
 import { playMusic, pauseMusic, resumeMusic, skipMusic, stopMusic, getQueue } from './music.js';
-import { grantPremium, revokePremium, listPremium, premiumExpiry, grantNoPrefix, revokeNoPrefix, hasNoPrefix, isPremium } from './premium.js';
+import { grantPremium, revokePremium, listPremium, premiumExpiry, grantNoPrefix, revokeNoPrefix, hasNoPrefix } from './premium.js';
 
-const CATALOG = [{"name":"ban","category":"moderation"},{"name":"unban","category":"moderation"},{"name":"kick","category":"moderation"},{"name":"timeout","category":"moderation"},{"name":"untimeout","category":"moderation"},{"name":"warn","category":"moderation"},{"name":"warnings","category":"moderation"},{"name":"clearwarnings","category":"moderation"},{"name":"purge","category":"moderation"},{"name":"slowmode","category":"moderation"},{"name":"lock","category":"moderation"},{"name":"unlock","category":"moderation"},{"name":"lockdown","category":"moderation"},{"name":"unlockdown","category":"moderation"},{"name":"nick","category":"moderation"},{"name":"deafen","category":"moderation"},{"name":"undeafen","category":"moderation"},{"name":"move","category":"moderation"},{"name":"softban","category":"moderation"},{"name":"massban","category":"moderation"},{"name":"history","category":"moderation"},{"name":"case","category":"moderation"},{"name":"cases","category":"moderation"},{"name":"reason","category":"moderation"},{"name":"mute","category":"moderation"},{"name":"unmute","category":"moderation"},{"name":"setup","category":"administration"},{"name":"config","category":"administration"},{"name":"configview","category":"administration"},{"name":"prefix","category":"administration"},{"name":"autorole","category":"administration"},{"name":"autoroleoff","category":"administration"},{"name":"welcome","category":"administration"},{"name":"welcomeoff","category":"administration"},{"name":"goodbye","category":"administration"},{"name":"verification","category":"administration"},{"name":"verificationoff","category":"administration"},{"name":"rules","category":"administration"},{"name":"announce","category":"administration"},{"name":"embed","category":"administration"},{"name":"say","category":"administration"},{"name":"poll","category":"administration"},{"name":"reactionrole","category":"administration"},{"name":"role","category":"administration"},{"name":"rolecreate","category":"administration"},{"name":"roledelete","category":"administration"},{"name":"roleadd","category":"administration"},{"name":"roleremove","category":"administration"},{"name":"roleinfo","category":"administration"},{"name":"channel","category":"administration"},{"name":"channelcreate","category":"administration"},{"name":"channeldelete","category":"administration"},{"name":"channeledit","category":"administration"},{"name":"categorydelete","category":"administration"},{"name":"permissions","category":"administration"},{"name":"servericon","category":"administration"},{"name":"serverbanner","category":"administration"},{"name":"servername","category":"administration"},{"name":"servername-reset","category":"administration"},{"name":"automod","category":"automod"},{"name":"automodstatus","category":"automod"},{"name":"antispam","category":"automod"},{"name":"antiinvite","category":"automod"},{"name":"antilink","category":"automod"},{"name":"anticaps","category":"automod"},{"name":"antimention","category":"automod"},{"name":"antiraid","category":"automod"},{"name":"antibot","category":"automod"},{"name":"antiscam","category":"automod"},{"name":"filter","category":"automod"},{"name":"filteradd","category":"automod"},{"name":"filterremove","category":"automod"},{"name":"filterlist","category":"automod"},{"name":"badwords","category":"automod"},{"name":"badwordadd","category":"automod"},{"name":"badwordremove","category":"automod"},{"name":"whitelist","category":"automod"},{"name":"whitelistadd","category":"automod"},{"name":"whitelistremove","category":"automod"},{"name":"quarantine","category":"automod"},{"name":"unquarantine","category":"automod"},{"name":"raidmode","category":"automod"},{"name":"raidmodeoff","category":"automod"},{"name":"verify","category":"automod"},{"name":"verificationlog","category":"automod"},{"name":"security","category":"security"},{"name":"securitystatus","category":"security"},{"name":"antinuke","category":"security"},{"name":"antinukeoff","category":"security"},{"name":"antialt","category":"security"},{"name":"antialtoff","category":"security"},{"name":"accountage","category":"security"},{"name":"joinscan","category":"security"},{"name":"leavescan","category":"security"},{"name":"audit","category":"security"},{"name":"auditlog","category":"security"},{"name":"rolelock","category":"security"},{"name":"channellock","category":"security"},{"name":"backupinfo","category":"security"},{"name":"emergency","category":"security"},{"name":"emergencyoff","category":"security"},{"name":"panic","category":"security"},{"name":"panicoff","category":"security"},{"name":"trust","category":"security"},{"name":"untrust","category":"security"},{"name":"help","category":"utility"},{"name":"ping","category":"utility"},{"name":"uptime","category":"utility"},{"name":"botinfo","category":"utility"},{"name":"invite","category":"utility"},{"name":"support","category":"utility"},{"name":"avatar","category":"utility"},{"name":"banner","category":"utility"},{"name":"userinfo","category":"utility"},{"name":"serverinfo","category":"utility"},{"name":"membercount","category":"utility"},{"name":"roles","category":"utility"},{"name":"channels","category":"utility"},{"name":"emojis","category":"utility"},{"name":"stickers","category":"utility"},{"name":"id","category":"utility"},{"name":"snowflake","category":"utility"},{"name":"timestamp","category":"utility"},{"name":"remind","category":"utility"},{"name":"reminders","category":"utility"},{"name":"timer","category":"utility"},{"name":"translate","category":"utility"},{"name":"calculator","category":"utility"},{"name":"choose","category":"utility"},{"name":"pollresults","category":"utility"},{"name":"embedpreview","category":"utility"},{"name":"afk","category":"utility"},{"name":"afkoff","category":"utility"},{"name":"whois","category":"utility"},{"name":"search","category":"utility"},{"name":"topic","category":"utility"},{"name":"suggest","category":"utility"},{"name":"report","category":"utility"},{"name":"feedback","category":"utility"},{"name":"stats","category":"utility"},{"name":"ticket","category":"tickets"},{"name":"ticketclose","category":"tickets"},{"name":"ticketopen","category":"tickets"},{"name":"ticketadd","category":"tickets"},{"name":"ticketremove","category":"tickets"},{"name":"ticketclaim","category":"tickets"},{"name":"ticketunclaim","category":"tickets"},{"name":"ticketrename","category":"tickets"},{"name":"tickettranscript","category":"tickets"},{"name":"ticketpanel","category":"tickets"},{"name":"ticketsetup","category":"tickets"},{"name":"ticketsettings","category":"tickets"},{"name":"ticketblacklist","category":"tickets"},{"name":"ticketwhitelist","category":"tickets"},{"name":"ticketpriority","category":"tickets"},{"name":"ticketlock","category":"tickets"},{"name":"ticketunlock","category":"tickets"},{"name":"ticketstatus","category":"tickets"},{"name":"ticketstats","category":"tickets"},{"name":"ticketdelete","category":"tickets"},{"name":"giveaway","category":"giveaways"},{"name":"giveawayend","category":"giveaways"},{"name":"giveawayreroll","category":"giveaways"},{"name":"giveawaypause","category":"giveaways"},{"name":"giveawayresume","category":"giveaways"},{"name":"giveawaylist","category":"giveaways"},{"name":"giveawayinfo","category":"giveaways"},{"name":"giveawaycancel","category":"giveaways"},{"name":"giveawayedit","category":"giveaways"},{"name":"giveawaywinners","category":"giveaways"},{"name":"giveawayenter","category":"giveaways"},{"name":"giveawayleave","category":"giveaways"},{"name":"giveawayrequirements","category":"giveaways"},{"name":"giveawayrole","category":"giveaways"},{"name":"giveawaychannel","category":"giveaways"},{"name":"balance","category":"economy"},{"name":"daily","category":"economy"},{"name":"weekly","category":"economy"},{"name":"work","category":"economy"},{"name":"crime","category":"economy"},{"name":"rob","category":"economy"},{"name":"deposit","category":"economy"},{"name":"withdraw","category":"economy"},{"name":"pay","category":"economy"},{"name":"give","category":"economy"},{"name":"bank","category":"economy"},{"name":"beg","category":"economy"},{"name":"dice","category":"economy"},{"name":"leaderboard","category":"economy"},{"name":"richest","category":"economy"},{"name":"shop","category":"economy"},{"name":"buy","category":"economy"},{"name":"sell","category":"economy"},{"name":"inventory","category":"economy"},{"name":"item","category":"economy"},{"name":"items","category":"economy"},{"name":"use","category":"economy"},{"name":"trade","category":"economy"},{"name":"trades","category":"economy"},{"name":"gift","category":"economy"},{"name":"economy","category":"economy"},{"name":"economyreset","category":"economy"},{"name":"economystats","category":"economy"},{"name":"claim","category":"economy"},{"name":"depositall","category":"economy"},{"name":"withdrawall","category":"economy"},{"name":"rank","category":"levels"},{"name":"level","category":"levels"},{"name":"levels","category":"levels"},{"name":"xp","category":"levels"},{"name":"xpset","category":"levels"},{"name":"xpgive","category":"levels"},{"name":"xptake","category":"levels"},{"name":"levelset","category":"levels"},{"name":"levelgive","category":"levels"},{"name":"leveltake","category":"levels"},{"name":"leaderboardxp","category":"levels"},{"name":"levelroles","category":"levels"},{"name":"levelroleadd","category":"levels"},{"name":"levelroleremove","category":"levels"},{"name":"levelsettings","category":"levels"},{"name":"levelreset","category":"levels"},{"name":"prestige","category":"levels"},{"name":"prestigeset","category":"levels"},{"name":"prestigeleaderboard","category":"levels"},{"name":"8ball","category":"fun"},{"name":"coin","category":"fun"},{"name":"roll","category":"fun"},{"name":"rate","category":"fun"},{"name":"ship","category":"fun"},{"name":"love","category":"fun"},{"name":"roast","category":"fun"},{"name":"compliment","category":"fun"},{"name":"insult","category":"fun"},{"name":"joke","category":"fun"},{"name":"meme","category":"fun"},{"name":"quote","category":"fun"},{"name":"fact","category":"fun"},{"name":"truth","category":"fun"},{"name":"dare","category":"fun"},{"name":"wouldyourather","category":"fun"},{"name":"neverhaveiever","category":"fun"},{"name":"rps","category":"fun"},{"name":"reverse","category":"fun"},{"name":"mock","category":"fun"},{"name":"ascii","category":"fun"},{"name":"clap","category":"fun"},{"name":"highfive","category":"fun"},{"name":"hug","category":"fun"},{"name":"kiss","category":"fun"},{"name":"slap","category":"fun"},{"name":"pat","category":"fun"},{"name":"bonk","category":"fun"},{"name":"dance","category":"fun"},{"name":"cry","category":"fun"},{"name":"laugh","category":"fun"},{"name":"wink","category":"fun"},{"name":"poke","category":"fun"},{"name":"cuddle","category":"fun"},{"name":"nom","category":"fun"},{"name":"yeet","category":"fun"},{"name":"vibe","category":"fun"},{"name":"fortune","category":"fun"},{"name":"trivia","category":"games"},{"name":"triviascore","category":"games"},{"name":"trivialeaderboard","category":"games"},{"name":"connect4","category":"games"},{"name":"tictactoe","category":"games"},{"name":"hangman","category":"games"},{"name":"wordle","category":"games"},{"name":"2048","category":"games"},{"name":"minesweeper","category":"games"},{"name":"snake","category":"games"},{"name":"memory","category":"games"},{"name":"higherlower","category":"games"},{"name":"guessnumber","category":"games"},{"name":"guessword","category":"games"},{"name":"anagram","category":"games"},{"name":"mathgame","category":"games"},{"name":"quiz","category":"games"},{"name":"duel","category":"games"},{"name":"battle","category":"games"},{"name":"rpg","category":"games"},{"name":"adventure","category":"games"},{"name":"dailyquest","category":"games"},{"name":"quests","category":"games"},{"name":"quest","category":"games"},{"name":"inventorygame","category":"games"},{"name":"craft","category":"games"},{"name":"craftlist","category":"games"},{"name":"fishing","category":"games"},{"name":"hunt","category":"games"},{"name":"mine","category":"games"},{"name":"farm","category":"games"},{"name":"play","category":"music"},{"name":"pause","category":"music"},{"name":"resume","category":"music"},{"name":"skip","category":"music"},{"name":"stop","category":"music"},{"name":"queue","category":"music"},{"name":"nowplaying","category":"music"},{"name":"volume","category":"music"},{"name":"shuffle","category":"music"},{"name":"loop","category":"music"},{"name":"lyrics","category":"music"},{"name":"seek","category":"music"},{"name":"join","category":"music"},{"name":"leave","category":"music"},{"name":"disconnect","category":"music"},{"name":"autoplay","category":"music"},{"name":"radio","category":"music"},{"name":"playlist","category":"music"},{"name":"playlists","category":"music"},{"name":"remove","category":"music"},{"name":"movequeue","category":"music"},{"name":"clearqueue","category":"music"},{"name":"bassboost","category":"music"},{"name":"nightcore","category":"music"},{"name":"filtermusic","category":"music"},{"name":"musicsettings","category":"music"},{"name":"musichelp","category":"music"},{"name":"logging","category":"logging"},{"name":"logstatus","category":"logging"},{"name":"logchannel","category":"logging"},{"name":"logchanneloff","category":"logging"},{"name":"modlogs","category":"logging"},{"name":"messagelogs","category":"logging"},{"name":"memberlogs","category":"logging"},{"name":"voicelogs","category":"logging"},{"name":"serverlogs","category":"logging"},{"name":"rolelogs","category":"logging"},{"name":"channellogs","category":"logging"},{"name":"commandlogs","category":"logging"},{"name":"auditlogs","category":"logging"},{"name":"logtest","category":"logging"},{"name":"logignore","category":"logging"},{"name":"logignoreadd","category":"logging"},{"name":"logignoreremove","category":"logging"},{"name":"welcometest","category":"welcome"},{"name":"welcomechannel","category":"welcome"},{"name":"welcomeimage","category":"welcome"},{"name":"welcomeembed","category":"welcome"},{"name":"welcomevariables","category":"welcome"},{"name":"welcomeautorole","category":"welcome"},{"name":"welcomemessage","category":"welcome"},{"name":"goodbyemessage","category":"welcome"},{"name":"goodbyetest","category":"welcome"},{"name":"goodbyechannel","category":"welcome"},{"name":"memberjoin","category":"welcome"},{"name":"memberleave","category":"welcome"},{"name":"image","category":"image"},{"name":"imageinfo","category":"image"},{"name":"imagequote","category":"image"},{"name":"imagecaption","category":"image"},{"name":"imagetranslate","category":"image"},{"name":"imagethumbnail","category":"image"},{"name":"imagesearch","category":"image"},{"name":"gif","category":"image"},{"name":"gifsearch","category":"image"},{"name":"sticker","category":"image"},{"name":"stickersearch","category":"image"},{"name":"memeimage","category":"image"},{"name":"demotivational","category":"image"},{"name":"wanted","category":"image"},{"name":"achievement","category":"image"},{"name":"triggered","category":"image"},{"name":"blur","category":"image"},{"name":"pixelate","category":"image"},{"name":"grayscale","category":"image"},{"name":"invert","category":"image"},{"name":"ai","category":"ai"},{"name":"ask","category":"ai"},{"name":"summarize","category":"ai"},{"name":"rewrite","category":"ai"},{"name":"explain","category":"ai"},{"name":"translateai","category":"ai"},{"name":"code","category":"ai"},{"name":"debug","category":"ai"},{"name":"ideas","category":"ai"},{"name":"chat","category":"ai"},{"name":"prompt","category":"ai"},{"name":"aigen","category":"ai"},{"name":"eval","category":"owner"},{"name":"reload","category":"owner"},{"name":"sync","category":"owner"},{"name":"syncguild","category":"owner"},{"name":"broadcast","category":"owner"},{"name":"status","category":"owner"},{"name":"maintenance","category":"owner"},{"name":"maintenanceoff","category":"owner"},{"name":"shutdown","category":"owner"},{"name":"restart","category":"owner"},{"name":"setactivity","category":"owner"},{"name":"setstatus","category":"owner"},{"name":"ownerhelp","category":"owner"},{"name":"guilds","category":"owner"},{"name":"leaveguild","category":"owner"},{"name":"joininfo","category":"owner"},{"name":"health","category":"owner"},{"name":"version","category":"owner"},{"name":"permissionscheck","category":"owner"},{"name":"premium","category":"owner"},{"name":"noprefix","category":"owner"}];
-
-const REGISTERED = [{"name":"help","category":"utility"},{"name":"ping","category":"utility"},{"name":"uptime","category":"utility"},{"name":"botinfo","category":"utility"},{"name":"serverinfo","category":"utility"},{"name":"userinfo","category":"utility"},{"name":"avatar","category":"utility"},{"name":"membercount","category":"utility"},{"name":"roles","category":"utility"},{"name":"channels","category":"utility"},{"name":"invite","category":"utility"},{"name":"support","category":"utility"},{"name":"remind","category":"utility"},{"name":"timer","category":"utility"},{"name":"afk","category":"utility"},{"name":"choose","category":"utility"},{"name":"coin","category":"fun"},{"name":"dice","category":"fun"},{"name":"roll","category":"fun"},{"name":"8ball","category":"fun"},{"name":"joke","category":"fun"},{"name":"rate","category":"fun"},{"name":"ship","category":"fun"},{"name":"ban","category":"moderation"},{"name":"kick","category":"moderation"},{"name":"timeout","category":"moderation"},{"name":"untimeout","category":"moderation"},{"name":"warn","category":"moderation"},{"name":"purge","category":"moderation"},{"name":"slowmode","category":"moderation"},{"name":"lock","category":"moderation"},{"name":"unlock","category":"moderation"},{"name":"nick","category":"moderation"},{"name":"say","category":"administration"},{"name":"announce","category":"administration"},{"name":"poll","category":"administration"},{"name":"role","category":"administration"},{"name":"rolecreate","category":"administration"},{"name":"roledelete","category":"administration"},{"name":"roleadd","category":"administration"},{"name":"roleremove","category":"administration"},{"name":"channelcreate","category":"administration"},{"name":"channeldelete","category":"administration"},{"name":"balance","category":"economy"},{"name":"daily","category":"economy"},{"name":"work","category":"economy"},{"name":"pay","category":"economy"},{"name":"shop","category":"economy"},{"name":"inventory","category":"economy"},{"name":"leaderboard","category":"economy"},{"name":"play","category":"music"},{"name":"pause","category":"music"},{"name":"resume","category":"music"},{"name":"skip","category":"music"},{"name":"stop","category":"music"},{"name":"queue","category":"music"},{"name":"nowplaying","category":"music"},{"name":"premium","category":"owner"},{"name":"noprefix","category":"owner"}]
-
-const categoryEmoji = {
-  moderation: '🛡️', administration: '⚙️', automod: '🤖', security: '🔐',
-  utility: '🔧', tickets: '🎫', giveaways: '🎉', economy: '💰', levels: '📈',
-  fun: '🎭', games: '🎮', music: '🎵', logging: '📋', welcome: '👋',
-  image: '🖼️', ai: '🧠', owner: '👑'
+const ownerId = process.env.OWNER_ID || '1244215702345482301';
+const state = {
+  warnings: new Map(), afk: new Map(), balances: new Map(), xp: new Map(),
+  settings: new Map(), tickets: new Map()
 };
 
-const COMMAND_DESCRIPTIONS = {
-  help: 'Show this interactive help menu',
-  ping: 'Check the bot latency',
-  uptime: 'Show how long the bot has been online',
-  botinfo: 'Show information about Lightcore',
-  serverinfo: 'Show information about this server',
-  userinfo: 'Show information about a user',
-  avatar: 'Show a user’s avatar',
-  membercount: 'Show the server member count',
-  roles: 'List the server roles',
-  channels: 'List the server channels',
-  ban: 'Ban a member from the server',
-  unban: 'Unban a previously banned user',
-  kick: 'Kick a member from the server',
-  timeout: 'Temporarily timeout a member',
-  warn: 'Warn a member',
-  warnings: 'View a member’s warnings',
-  purge: 'Delete multiple messages',
-  slowmode: 'Set the channel slowmode',
-  lock: 'Lock the current channel',
-  unlock: 'Unlock the current channel',
-  announce: 'Send an announcement message',
-  say: 'Make Lightcore send a message',
-  poll: 'Create a poll',
-  ticket: 'Create or manage a support ticket',
-  giveaway: 'Start a giveaway',
-  balance: 'Check your economy balance',
-  daily: 'Claim your daily reward',
-  pay: 'Pay another user',
-  shop: 'View the server shop',
-  inventory: 'View your inventory',
-  rank: 'View your level and rank',
-  level: 'View your current level',
-  leaderboard: 'View the economy leaderboard',
-  '8ball': 'Ask the magic 8-ball a question',
-  coin: 'Flip a coin',
-  dice: 'Roll a dice',
-  roll: 'Roll a random number',
-  choose: 'Choose between multiple options',
-  joke: 'Get a random joke',
-  meme: 'Get a random meme',
-  trivia: 'Play a trivia game',
-  play: 'Play music in a voice channel',
-  pause: 'Pause the current music',
-  resume: 'Resume paused music',
-  skip: 'Skip the current track',
-  queue: 'Show the music queue',
-  nowplaying: 'Show the currently playing track',
-  ai: 'Ask Lightcore AI something',
-  ask: 'Ask an AI question',
-  remind: 'Create a reminder',
-  timer: 'Start a timer',
-  afk: 'Set your AFK status',
-  automod: 'Configure automatic moderation',
-  antinuke: 'Configure anti-nuke protection',
-  security: 'View security settings',
-  logging: 'Configure server logging',
-  welcome: 'Configure welcome messages',
-  invite: 'Create or view the bot invite',
-  support: 'Get Lightcore support information',
-  premium: '👑 Owner only — grant, revoke, check or list Premium',
-  noprefix: '👑 Owner only — grant or revoke no-prefix access'
-};
+const definitions = [
+  ['help','utility'],['ping','utility'],['uptime','utility'],['botinfo','utility'],['serverinfo','utility'],
+  ['userinfo','utility'],['avatar','utility'],['banner','utility'],['membercount','utility'],['roles','utility'],
+  ['channels','utility'],['id','utility'],['timestamp','utility'],['choose','utility'],['remind','utility'],
+  ['timer','utility'],['afk','utility'],['stats','utility'],['invite','utility'],['support','utility'],
+  ['ban','moderation'],['unban','moderation'],['kick','moderation'],['timeout','moderation'],['untimeout','moderation'],
+  ['warn','moderation'],['warnings','moderation'],['clearwarnings','moderation'],['purge','moderation'],
+  ['slowmode','moderation'],['lock','moderation'],['unlock','moderation'],['nick','moderation'],
+  ['announce','administration'],['say','administration'],['poll','administration'],['rolecreate','administration'],
+  ['roledelete','administration'],['roleadd','administration'],['roleremove','administration'],
+  ['channelcreate','administration'],['channeldelete','administration'],['setup','administration'],
+  ['automod','automod'],['antispam','automod'],['antilink','automod'],['filterword','automod'],
+  ['logging','logging'],['welcome','welcome'],['goodbye','welcome'],
+  ['ticket','tickets'],['ticketclose','tickets'],['ticketadd','tickets'],['ticketremove','tickets'],['ticketpanel','tickets'],
+  ['giveaway','giveaways'],['giveawayend','giveaways'],['giveawayreroll','giveaways'],
+  ['balance','economy'],['daily','economy'],['work','economy'],['pay','economy'],['shop','economy'],['inventory','economy'],
+  ['leaderboard','economy'],['rank','levels'],['level','levels'],['xpgive','levels'],['levelgive','levels'],['leaderboardxp','levels'],
+  ['coin','fun'],['dice','fun'],['8ball','fun'],['joke','fun'],['rate','fun'],['ship','fun'],['rps','games'],['trivia','games'],
+  ['play','music'],['pause','music'],['resume','music'],['skip','music'],['stop','music'],['queue','music'],['nowplaying','music'],
+  ['premium','owner'],['noprefix','owner']
+].map(([name,category]) => ({name,category}));
 
-function commandDescription(name) {
-  return COMMAND_DESCRIPTIONS[name] || `Use the ${name.replace(/-/g, ' ')} feature`;
+export const REGISTERED = definitions;
+export const CATALOG = REGISTERED;
+
+const emoji = {utility:'🧰',moderation:'🛡️',administration:'⚙️',automod:'🤖',logging:'📜',welcome:'👋',tickets:'🎫',giveaways:'🎁',economy:'💰',levels:'⭐',fun:'🎉',games:'🎮',music:'🎵',owner:'👑'};
+const descriptions = Object.fromEntries(definitions.map(x => [x.name, 'Lightcore '+x.name+' command']));
+
+function userOption(b, name='user') {
+  return b.addUserOption(o => o.setName(name).setDescription('Member').setRequired(true));
+}
+function textOption(b, name, required=true) {
+  return b.addStringOption(o => o.setName(name).setDescription('Value').setRequired(required));
+}
+function intOption(b, name, required=true, min=0, max=1000000) {
+  return b.addIntegerOption(o => o.setName(name).setDescription('Number').setRequired(required).setMinValue(min).setMaxValue(max));
 }
 
-function buildHelpPayload(selectedCategory = 'overview') {
-  const groups = {};
-  for (const item of REGISTERED) (groups[item.category] ||= []).push(item.name);
-  const categoryNames = Object.keys(groups);
-  const safeCategory = selectedCategory === 'overview' || groups[selectedCategory] ? selectedCategory : 'overview';
-
-  const lines = safeCategory === 'overview'
-    ? [
-        '## ⚡ LIGHTCORE',
-        '> **All-in-one Discord management bot**',
-        '',
-        '**Features**',
-        '🛡️ Moderation • ⚙️ Administration • 🧰 Utility',
-        '💰 Economy • 🎵 Music • 🎉 Fun',
-        '',
-        '**Select a category below** to browse commands.'
-      ]
-    : [
-        '## ' + (categoryEmoji[safeCategory] || '🔹') + ' ' + safeCategory.toUpperCase(),
-        '',
-        ...(groups[safeCategory] || []).map(name => '**/' + name + '** — ' + commandDescription(name))
-      ];
-
-  const container = new ContainerBuilder()
-    .addTextDisplayComponents(new TextDisplayBuilder().setContent(lines.join('\n')))
-    .addSeparatorComponents(new SeparatorBuilder().setDivider(true));
-
-  const select = new StringSelectMenuBuilder()
-    .setCustomId('lightcore_help:category')
-    .setPlaceholder('📚 Choose a category')
-    .addOptions([
-      {label:'🏠 Overview', value:'overview', description:'Lightcore overview'},
-      ...categoryNames.map(cat => ({
-        label: ((categoryEmoji[cat] || '🔹') + ' ' + cat).slice(0,100),
-        value: cat,
-        description: (groups[cat].length + ' commands').slice(0,100)
-      }))
-    ]);
-
-  const buttons = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId('lightcore_help:home').setLabel('Home').setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId('lightcore_help:ping').setLabel('Ping').setStyle(ButtonStyle.Primary)
-  );
-
-  container.addActionRowComponents(new ActionRowBuilder().addComponents(select));
-  container.addActionRowComponents(buttons);
-
-  return { flags: MessageFlags.IsComponentsV2, components: [container] };
-}
-
-
-async function handleHelpInteraction(interaction, client) {
-  if (!interaction.isStringSelectMenu() && !interaction.isButton()) return false;
-  if (!interaction.customId.startsWith('lightcore_help:')) return false;
-
-  if (interaction.customId === 'lightcore_help:ping') {
-    await interaction.reply({ content: `🏓 Pong! **${client.ws.ping}ms**`, ephemeral: true });
-    return true;
+export function makeCommand(name, category) {
+  const b = new SlashCommandBuilder().setName(name).setDescription(descriptions[name]);
+  if (['ban','unban','kick','timeout','untimeout','warn','warnings','clearwarnings','nick'].includes(name)) userOption(b);
+  if (['ban','kick','warn'].includes(name)) textOption(b,'reason',false);
+  if (name === 'timeout') intOption(b,'minutes',true,1,40320);
+  if (name === 'nick') textOption(b,'nickname');
+  if (name === 'purge') intOption(b,'amount',true,1,100);
+  if (name === 'slowmode') intOption(b,'seconds',true,0,21600);
+  if (['say','announce','choose','rate','ship'].includes(name)) textOption(b,'text');
+  if (name === 'remind') { textOption(b,'duration'); textOption(b,'message'); }
+  if (name === 'timer') textOption(b,'duration');
+  if (['userinfo','avatar','banner','level'].includes(name)) userOption(b);
+  if (name === 'timestamp') textOption(b,'date');
+  if (name === 'rolecreate') textOption(b,'name');
+  if (name === 'roledelete') b.addRoleOption(o=>o.setName('role').setDescription('Role').setRequired(true));
+  if (name === 'roleadd' || name === 'roleremove') { userOption(b); b.addRoleOption(o=>o.setName('role').setDescription('Role').setRequired(true)); }
+  if (name === 'channelcreate') { textOption(b,'name'); b.addStringOption(o=>o.setName('type').setDescription('Channel type').addChoices({name:'Text',value:'text'},{name:'Voice',value:'voice'})); }
+  if (name === 'channeldelete') b.addChannelOption(o=>o.setName('channel').setDescription('Channel').setRequired(true));
+  if (name === 'poll') { textOption(b,'question'); textOption(b,'options'); }
+  if (name === 'ticket') textOption(b,'reason',false);
+  if (name === 'ticketadd' || name === 'ticketremove') userOption(b);
+  if (name === 'giveaway') { textOption(b,'duration'); textOption(b,'prize'); intOption(b,'winners',true,1,20); }
+  if (name === 'pay') { userOption(b); intOption(b,'amount',true,1,1000000000); }
+  if (name === 'xpgive' || name === 'levelgive') { userOption(b); intOption(b,'amount',true,1,1000000); }
+  if (name === 'play') textOption(b,'song');
+  if (name === 'rps') textOption(b,'choice');
+  if (name === 'timestamp') textOption(b,'date');
+  if (name === 'premium' || name === 'noprefix') {
+    b.addSubcommand(s=>s.setName('grant').setDescription('Grant access').addUserOption(o=>o.setName('user').setDescription('User').setRequired(true)).addIntegerOption(o=>o.setName('days').setDescription('Days').setMinValue(1).setMaxValue(3650)));
+    b.addSubcommand(s=>s.setName('revoke').setDescription('Revoke access').addUserOption(o=>o.setName('user').setDescription('User').setRequired(true)));
+    b.addSubcommand(s=>s.setName('status').setDescription('Check access').addUserOption(o=>o.setName('user').setDescription('User').setRequired(true)));
+    if (name === 'premium') b.addSubcommand(s=>s.setName('list').setDescription('List premium grants'));
   }
-
-  const category = interaction.isStringSelectMenu()
-    ? interaction.values[0]
-    : 'overview';
-
-  await interaction.update(buildHelpPayload(category));
-  return true;
-}
-
-function makeCommand(name, category) {
-  const b = new SlashCommandBuilder()
-    .setName(name)
-    .setDescription(`${categoryEmoji[category] || '🔹'} ${name.replace(/-/g,' ')} command`);
-
-  // Safe, commonly useful options. They are optional so generic catalog
-  // commands can still work without extra configuration.
-  if (['userinfo','avatar','ban','kick','timeout','untimeout','warn','pay','roledelete','nick'].includes(name)) {
-    b.addUserOption(o => o.setName('user').setDescription('Target user').setRequired(false));
-  }
-  if (name === 'play') {
-    b.addStringOption(o => o.setName('song').setDescription('Song name or YouTube link').setRequired(true).setMaxLength(500));
-  }
-  if (['say','announce','suggest','feedback','report'].includes(name)) {
-    b.addStringOption(o => o.setName('text').setDescription('Text').setRequired(true).setMaxLength(1900));
-  }
-  if (['purge'].includes(name)) {
-    b.addIntegerOption(o => o.setName('amount').setDescription('Number of messages').setRequired(true).setMinValue(1).setMaxValue(100));
-  }
-  if (['slowmode'].includes(name)) {
-    b.addIntegerOption(o => o.setName('seconds').setDescription('Slowmode seconds').setRequired(true).setMinValue(0).setMaxValue(21600));
-  }
-  if (['premium','noprefix'].includes(name)) {
-    b.addSubcommand(s => s.setName('grant').setDescription('Grant access').addUserOption(o => o.setName('user').setDescription('User').setRequired(true)).addIntegerOption(o => o.setName('days').setDescription('Days; omit for lifetime').setRequired(false).setMinValue(1).setMaxValue(36500)));
-    b.addSubcommand(s => s.setName('revoke').setDescription('Revoke access').addUserOption(o => o.setName('user').setDescription('User').setRequired(true)));
-    b.addSubcommand(s => s.setName('status').setDescription('Check access').addUserOption(o => o.setName('user').setDescription('User').setRequired(false)));
-    if (name === 'premium') b.addSubcommand(s => s.setName('list').setDescription('List active premium grants'));
-  }
-
-  if (name === 'poll') b.addStringOption(o => o.setName('text').setDescription('Poll question').setRequired(true).setMaxLength(300));
-  if (name === 'rolecreate') b.addStringOption(o => o.setName('name').setDescription('Role name').setRequired(true).setMaxLength(100));
-  if (['roledelete','roleadd','roleremove'].includes(name)) b.addRoleOption(o => o.setName('role').setDescription('Role').setRequired(true));
-  if (['roleadd','roleremove'].includes(name)) b.addUserOption(o => o.setName('user').setDescription('User').setRequired(true));
-  if (name === 'channelcreate') b.addStringOption(o => o.setName('name').setDescription('Channel name').setRequired(true).setMaxLength(90));
-  if (name === 'channeldelete') b.addChannelOption(o => o.setName('channel').setDescription('Channel').setRequired(true));
-  if (['remind','timer'].includes(name)) {
-    b.addIntegerOption(o => o.setName('minutes').setDescription('Minutes').setRequired(true).setMinValue(1).setMaxValue(10080));
-    b.addStringOption(o => o.setName('text').setDescription('Reminder text').setRequired(false).setMaxLength(500));
-  }
+  if (['moderation','administration','automod','logging','welcome','tickets'].includes(category)) b.setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild.toString());
+  if (['ban','unban','kick','timeout','untimeout','warn','clearwarnings','purge','slowmode','lock','unlock','nick'].includes(name)) b.setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers.toString());
+  if (category === 'owner') b.setDefaultMemberPermissions(PermissionFlagsBits.Administrator.toString());
   return b;
 }
 
-function isStaff(interaction) {
-  return interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild) ||
-         interaction.memberPermissions?.has(PermissionFlagsBits.ManageMessages);
+const key=(g,u)=>g+':'+u;
+const durationMs=(v)=>{const m=String(v||'').match(/^(\\d+)\\s*(s|m|h|d|w)$/i);return m?Number(m[1])*({s:1000,m:60000,h:3600000,d:86400000,w:604800000})[m[2].toLowerCase()]:null;};
+const wallet=(g,u)=>{const k=key(g,u);if(!state.balances.has(k))state.balances.set(k,100);return state.balances.get(k);};
+const setWallet=(g,u,n)=>state.balances.set(key(g,u),Math.max(0,n));
+const xpRow=(g,u)=>{const k=key(g,u);if(!state.xp.has(k))state.xp.set(k,{xp:0,level:0});return state.xp.get(k);};
+const addXp=(g,u,n)=>{const r=xpRow(g,u);r.xp+=n;r.level=Math.floor(r.xp/100);return r;};
+const guildOnly=i=>{if(!i.guild){i.reply({content:'This command is server-only.',ephemeral:true});return false;}return true;};
+
+export function buildHelpPayload(selected='overview') {
+  const groups={}; for(const c of REGISTERED)(groups[c.category]??=[]).push(c.name);
+  const cats=Object.keys(groups); const safe=selected==='overview'||groups[selected]?selected:'overview';
+  const lines=safe==='overview'
+    ? ['## ⚡ LIGHTCORE','> All-in-one Discord management bot','', '**Modules**','🛡️ Moderation • ⚙️ Administration • 🤖 AutoMod • 📜 Logging','👋 Welcome • 🎫 Tickets • 🎁 Giveaways • 💰 Economy • ⭐ Levels','🎉 Fun • 🎮 Games • 🎵 Music • 🧰 Utility','', 'Choose a module below to browse its real registered commands.']
+    : ['## '+(emoji[safe]||'🔹')+' '+safe.toUpperCase(),'',...(groups[safe]||[]).map(n=>'**/'+n+'** — '+descriptions[n])];
+  const menu=new StringSelectMenuBuilder().setCustomId('lightcore:help').setPlaceholder('📚 Choose a module').addOptions(
+    {label:'🏠 Overview',value:'overview',description:'Lightcore command center'},
+    ...cats.map(c=>({label:(emoji[c]||'🔹')+' '+c,value:c,description:groups[c].length+' commands'}))
+  );
+  const box=new ContainerBuilder()
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent(lines.join('\\n')))
+    .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+    .addActionRowComponents(new ActionRowBuilder().addComponents(menu))
+    .addActionRowComponents(new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId('lightcore:home').setLabel('Home').setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId('lightcore:ping').setLabel('Ping').setStyle(ButtonStyle.Primary)
+    ));
+  return {flags:MessageFlags.IsComponentsV2,components:[box]};
 }
 
-function formatUptime(ms) {
-  const s = Math.floor(ms / 1000);
-  const d = Math.floor(s / 86400);
-  const h = Math.floor(s / 3600) % 24;
-  const m = Math.floor(s / 60) % 60;
-  const sec = s % 60;
-  return `${d}d ${h}h ${m}m ${sec}s`;
+export async function handleHelpInteraction(i,client) {
+  if(!i.isButton()&&!i.isStringSelectMenu())return false;
+  if(!i.customId.startsWith('lightcore:'))return false;
+  if(i.customId==='lightcore:ping')return i.reply({content:'🏓 Pong! '+client.ws.ping+'ms',ephemeral:true});
+  return i.update(buildHelpPayload(i.isStringSelectMenu()?i.values[0]:'overview'));
 }
 
-async function handle(interaction, client) {
-  const { commandName } = interaction;
-  const user = interaction.options.getUser('user');
-  const text = interaction.options.getString('text');
-  const category = CATALOG.find(x => x.name === commandName)?.category || 'utility';
-
-  if (commandName === 'help') {
-    return interaction.reply(buildHelpPayload('overview'));
-  }
-
-  if (commandName === 'premium' || commandName === 'noprefix') {
-    const ownerId = process.env.OWNER_USER_ID || '1244215702345482301';
-    if (interaction.user.id !== ownerId) return interaction.reply({content:'❌ Owner only.', ephemeral:true});
-    const sub = interaction.options.getSubcommand(false);
-    const target = interaction.options.getUser('user') || interaction.user;
-    const days = interaction.options.getInteger('days');
-    const scope = 'user';
-
-    if (commandName === 'premium' && sub === 'list') {
-      const rows = listPremium();
-      if (!rows.length) return interaction.reply('⭐ No premium grants are active.');
-      const lines = rows.slice(0, 50).map(r => {
-        const expiry = r.expires_at ? '<t:' + Math.floor(r.expires_at / 1000) + ':R>' : '**Lifetime**';
-        return '• **' + r.scope + '** \\`' + r.scope_id + '\\` — ' + expiry;
-      });
-      return interaction.reply('⭐ **Premium grants**\\n' + lines.join('\n'));
-    }
-
-    if (sub === 'grant') {
-      if (commandName === 'premium') grantPremium(scope, target.id, days);
-      else grantNoPrefix(scope, target.id, days);
-      const label = days ? 'for **' + days + ' day(s)**' : '**lifetime**';
-      return interaction.reply('✅ ' + (commandName === 'premium' ? 'Premium' : 'No-prefix') + ' granted to ' + target + ' ' + label + '.');
-    }
-
-    if (sub === 'revoke') {
-      if (commandName === 'premium') revokePremium(scope, target.id);
-      else revokeNoPrefix(scope, target.id);
-      return interaction.reply('✅ ' + (commandName === 'premium' ? 'Premium' : 'No-prefix') + ' revoked from ' + target + '.');
-    }
-
-    if (sub === 'status') {
-      const premium = isPremium(target.id, interaction.guildId);
-      const np = hasNoPrefix(target.id, interaction.guildId);
-      const expiry = premiumExpiry(scope, target.id);
-      return interaction.reply('⭐ **' + target.tag + '**\\nPremium: **' + (premium ? 'ACTIVE' : 'INACTIVE') + '**\\nNo-prefix: **' + (np ? 'ENABLED' : 'DISABLED') + '**\\nExpiry: ' + (expiry ? '<t:' + Math.floor(expiry / 1000) + ':F>' : premium ? '**Lifetime**' : '—'));
-    }
-  }
-
-  if (commandName === 'catalog') {
-    return interaction.reply(buildHelpPayload('overview'));
-  }
-
-  if (commandName === 'invite') {
-    const clientId = client.user?.id;
-    return interaction.reply({content: clientId ? '🔗 Invite Lightcore: <https://discord.com/oauth2/authorize?client_id=' + clientId + '&permissions=8&scope=bot%20applications.commands>' : 'Invite link unavailable.'});
-  }
-
-  if (commandName === 'support') {
-    const url = process.env.SUPPORT_URL || 'https://discord.com';
-    return interaction.reply('🛠️ **Lightcore Support**\\n' + url);
-  }
-
-  if (commandName === 'remind' || commandName === 'timer') {
-    const minutes = interaction.options.getInteger('minutes', true);
-    const reminderText = interaction.options.getString('text') || (commandName === 'timer' ? 'Timer finished!' : 'Reminder!');
-    await interaction.reply('⏰ I\'ll remind you in **' + minutes + ' minute(s)**.');
-    setTimeout(() => {
-      interaction.followUp('🔔 <@' + interaction.user.id + '> ' + reminderText).catch(() => {});
-    }, minutes * 60 * 1000);
-    return;
-  }
-
-  if (commandName === 'afk') {
-    return interaction.reply('💤 AFK mode enabled for **' + interaction.user.tag + '**.');
-  }
-
-  if (commandName === 'poll') {
-    if (!isStaff(interaction)) return interaction.reply({content:'❌ Staff permission required.',ephemeral:true});
-    const question = interaction.options.getString('text', true);
-    const embed = new EmbedBuilder().setTitle('📊 Poll').setDescription(question).setFooter({text:'React with 👍 or 👎'});
-    const msg = await interaction.reply({embeds:[embed], fetchReply:true});
-    await msg.react('👍').catch(()=>{}); await msg.react('👎').catch(()=>{});
-    return;
-  }
-
-  if (['rolecreate','roledelete','roleadd','roleremove'].includes(commandName)) {
-    if (!interaction.guild) return interaction.reply({content:'Server only.',ephemeral:true});
-    if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageRoles)) return interaction.reply({content:'❌ Manage Roles permission required.',ephemeral:true});
-    const role = interaction.options.getRole('role');
-    const name = interaction.options.getString('name');
-    try {
-      if (commandName === 'rolecreate') {
-        const created = await interaction.guild.roles.create({name: name || 'New Role', reason:'Lightcore rolecreate'});
-        return interaction.reply('✅ Created <@&' + created.id + '>.');
-      }
-      if (!role) return interaction.reply({content:'❌ Select a role.',ephemeral:true});
-      if (commandName === 'roledelete') { await role.delete('Lightcore roledelete'); return interaction.reply('🗑️ Role deleted.'); }
-      const member = interaction.options.getUser('user');
-      if (!member) return interaction.reply({content:'❌ Select a user.',ephemeral:true});
-      const m = await interaction.guild.members.fetch(member.id);
-      if (commandName === 'roleadd') await m.roles.add(role);
-      else await m.roles.remove(role);
-      return interaction.reply('✅ Role updated for ' + member + '.');
-    } catch (e) { return interaction.reply({content:'❌ ' + e.message.slice(0,250),ephemeral:true}); }
-  }
-
-  if (commandName === 'channelcreate') {
-    if (!interaction.guild) return interaction.reply({content:'Server only.',ephemeral:true});
-    if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageChannels)) return interaction.reply({content:'❌ Manage Channels permission required.',ephemeral:true});
-    const name = interaction.options.getString('name', true).toLowerCase().replace(/[^a-z0-9-_]/g,'-').slice(0,90);
-    const ch = await interaction.guild.channels.create({name, type:ChannelType.GuildText});
-    return interaction.reply('✅ Created ' + ch + '.');
-  }
-
-  if (commandName === 'channeldelete') {
-    if (!interaction.guild) return interaction.reply({content:'Server only.',ephemeral:true});
-    if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageChannels)) return interaction.reply({content:'❌ Manage Channels permission required.',ephemeral:true});
-    const channel = interaction.options.getChannel('channel');
-    if (!channel) return interaction.reply({content:'❌ Select a channel.',ephemeral:true});
-    await channel.delete('Lightcore channeldelete');
-    return interaction.reply('🗑️ Channel deleted.');
-  }
-
-  if (commandName === 'nick') {
-    if (!interaction.guild) return interaction.reply({content:'Server only.',ephemeral:true});
-    if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageNicknames)) return interaction.reply({content:'❌ Manage Nicknames permission required.',ephemeral:true});
-    const target = user || interaction.user;
-    const member = await interaction.guild.members.fetch(target.id);
-    const nickname = interaction.options.getString('text');
-    await member.setNickname(nickname || null, 'Lightcore nick');
-    return interaction.reply('✅ Nickname updated.');
-  }
-
-  if (commandName === 'ping') {
-    return interaction.reply(`🏓 Pong! **${client.ws.ping}ms**`);
-  }
-
-  if (commandName === 'untimeout') {
-    if (!interaction.guild || !isStaff(interaction)) return interaction.reply({content:'❌ Staff permission required.',ephemeral:true});
-    if (!user) return interaction.reply({content:'❌ Select a user.',ephemeral:true});
-    const member = await interaction.guild.members.fetch(user.id).catch(()=>null);
-    if (!member) return interaction.reply({content:'❌ User is not in this server.',ephemeral:true});
-    await member.timeout(null, 'Lightcore /untimeout');
-    return interaction.reply('✅ Timeout removed from ' + user + '.');
-  }
-
-  if (commandName === 'uptime') {
-    return interaction.reply(`⏱️ Uptime: **${formatUptime(client.uptime || 0)}**`);
-  }
-
-  if (commandName === 'botinfo') {
-    return interaction.reply(`🤖 **Lightcore**\nServers: **${client.guilds.cache.size}**\nUsers cached: **${client.users.cache.size}**\nCommands registered: **${REGISTERED.length}**\nCatalog: **${CATALOG.length}**`);
-  }
-
-  if (commandName === 'serverinfo') {
-    const g = interaction.guild;
-    if (!g) return interaction.reply({content:'This command must be used in a server.', ephemeral:true});
-    return interaction.reply(`🏠 **${g.name}**\nOwner: <@${g.ownerId}>\nMembers: **${g.memberCount}**\nChannels: **${g.channels.cache.size}**\nRoles: **${g.roles.cache.size}**`);
-  }
-
-  if (commandName === 'userinfo') {
-    const u = user || interaction.user;
-    return interaction.reply(`👤 **${u.tag}**\nID: \`${u.id}\`\nCreated: <t:${Math.floor(u.createdTimestamp/1000)}:F>`);
-  }
-
-  if (commandName === 'avatar') {
-    const u = user || interaction.user;
-    return interaction.reply(u.displayAvatarURL({size:1024, extension:'png'}));
-  }
-
-  if (commandName === 'membercount') {
-    return interaction.reply(`👥 Members: **${interaction.guild?.memberCount ?? 0}**`);
-  }
-
-  if (commandName === 'roles') {
-    if (!interaction.guild) return interaction.reply({content:'Server only.',ephemeral:true});
-    const roles = interaction.guild.roles.cache.filter(r=>r.id!==interaction.guild.id).map(r=>r.name).slice(0,60);
-    return interaction.reply(`🎭 Roles (${roles.length} shown):\n${roles.length ? roles.join(', ') : 'None'}`);
-  }
-
-  if (commandName === 'channels') {
-    if (!interaction.guild) return interaction.reply({content:'Server only.',ephemeral:true});
-    const chans = interaction.guild.channels.cache.map(c=>`#${c.name}`).slice(0,60);
-    return interaction.reply(`📺 Channels (${chans.length} shown):\n${chans.join(', ') || 'None'}`);
-  }
-
-  // Real moderation actions.
-  if (['ban','kick','timeout','warn'].includes(commandName)) {
-    if (!interaction.guild) return interaction.reply({content:'Server only.',ephemeral:true});
-    if (!isStaff(interaction)) return interaction.reply({content:'❌ You need Manage Messages or Manage Server.',ephemeral:true});
-    if (!user) return interaction.reply({content:'Select a user.',ephemeral:true});
-    const member = await interaction.guild.members.fetch(user.id).catch(()=>null);
-    if (!member) return interaction.reply({content:'User is not in this server.',ephemeral:true});
-    try {
-      if (commandName==='ban') await member.ban({reason:`Lightcore /ban by ${interaction.user.tag}`});
-      if (commandName==='kick') await member.kick(`Lightcore /kick by ${interaction.user.tag}`);
-      if (commandName==='timeout') await member.timeout(10*60*1000, `Lightcore /timeout by ${interaction.user.tag}`);
-      if (commandName==='warn') return interaction.reply(`⚠️ Warning recorded for ${user}. Configure MongoDB to persist warning history.`);
-      return interaction.reply(`✅ ${commandName} completed for ${user}.`);
-    } catch(e) {
-      return interaction.reply({content:`❌ Discord rejected the action: ${e.message.slice(0,300)}`,ephemeral:true});
-    }
-  }
-
-  if (commandName === 'purge') {
-    if (!interaction.channel?.isTextBased()) return interaction.reply({content:'Text channel only.',ephemeral:true});
-    if (!isStaff(interaction)) return interaction.reply({content:'❌ Manage Messages permission required.',ephemeral:true});
-    const amount = interaction.options.getInteger('amount', true);
-    if (!interaction.channel.bulkDelete) return interaction.reply({content:'This channel does not support bulk deletion.',ephemeral:true});
-    const deleted = await interaction.channel.bulkDelete(amount, true).catch(()=>null);
-    return interaction.reply({content:`🧹 Deleted **${deleted?.size || 0}** messages.`,ephemeral:true});
-  }
-
-  if (commandName === 'slowmode') {
-    if (!interaction.channel?.setRateLimitPerUser) return interaction.reply({content:'Text channel only.',ephemeral:true});
-    if (!isStaff(interaction)) return interaction.reply({content:'❌ Manage Channels permission required.',ephemeral:true});
-    const seconds=interaction.options.getInteger('seconds',true);
-    await interaction.channel.setRateLimitPerUser(seconds).catch(()=>null);
-    return interaction.reply(`🐢 Slowmode set to **${seconds}s**.`);
-  }
-
-  if (commandName === 'lock' || commandName === 'unlock') {
-    if (!interaction.channel?.permissionOverwrites) return interaction.reply({content:'Text channel only.',ephemeral:true});
-    if (!isStaff(interaction)) return interaction.reply({content:'❌ Manage Channels permission required.',ephemeral:true});
-    const deny = commandName === 'lock';
-    await interaction.channel.permissionOverwrites.edit(interaction.guild.roles.everyone, {SendMessages: deny}).catch(()=>null);
-    return interaction.reply(`${deny ? '🔒 Locked' : '🔓 Unlocked'} ${interaction.channel}.`);
-  }
-
-  if (commandName === 'say' || commandName === 'announce') {
-    if (!isStaff(interaction)) return interaction.reply({content:'❌ Staff permission required.',ephemeral:true});
-    return interaction.reply({content:text, allowedMentions:{parse:[]}});
-  }
-
-  if (commandName === 'choose') {
-    const choices = text ? text.split(',').map(x=>x.trim()).filter(Boolean) : [];
-    return interaction.reply(choices.length ? `🎯 I choose: **${choices[Math.floor(Math.random()*choices.length)]}**` : 'Use comma-separated choices.');
-  }
-
-  if (commandName === 'coin') return interaction.reply(Math.random()<0.5 ? '🪙 Heads!' : '🪙 Tails!');
-  if (commandName === 'dice' || commandName === 'roll') return interaction.reply(`🎲 You rolled **${1+Math.floor(Math.random()*6)}**!`);
-  if (commandName === '8ball') {
-    const a=['Yes.','No.','Definitely.','Probably.','Ask again later.','Absolutely not.'];
-    return interaction.reply(`🎱 ${a[Math.floor(Math.random()*a.length)]}`);
-  }
-  if (commandName === 'joke') return interaction.reply('😂 Why did the developer go broke? Because they used up all their cache.');
-  if (commandName === 'rate') return interaction.reply(`⭐ Rating: **${Math.floor(Math.random()*101)}%**`);
-  if (commandName === 'ship') return interaction.reply(`💖 Compatibility: **${Math.floor(Math.random()*101)}%**`);
-
-  if (['balance','daily','work','beg','shop','inventory','pay'].includes(commandName)) {
-    return interaction.reply(`💰 **${commandName}** is enabled in the Lightcore economy module. Persistent balances require \`MONGO_URI\` to be configured.`);
-  }
-
-  if (['play','pause','resume','skip','stop','queue','nowplaying'].includes(commandName)) {
-    if (!interaction.guild) return interaction.reply({content:'Server only.',ephemeral:true});
-
-    if (commandName === 'play') {
-      const query = interaction.options.getString('song') || text;
-      const voiceChannel = interaction.member?.voice?.channel;
-      if (!voiceChannel) return interaction.reply({content:'🎵 Join a voice channel first.',ephemeral:true});
-      if (!query) return interaction.reply({content:'🎵 Give me a song name or YouTube link.',ephemeral:true});
-      await interaction.deferReply();
-      try {
-        const track = await playMusic({
-          guild: interaction.guild,
-          voiceChannel,
-          textChannel: interaction.channel,
-          query
-        });
-        return interaction.editReply(`🎶 Added **${track.title}** to the music queue.`);
-      } catch (error) {
-        console.error('[music] play command:', error);
-        return interaction.editReply('❌ Music could not start. Check that I have **Connect** and **Speak** permissions in your voice channel.');
-      }
-    }
-
-    if (commandName === 'pause') return interaction.reply(pauseMusic(interaction.guild.id) ? '⏸️ Music paused.' : '❌ Nothing is playing.');
-    if (commandName === 'resume') return interaction.reply(resumeMusic(interaction.guild.id) ? '▶️ Music resumed.' : '❌ Nothing is paused.');
-    if (commandName === 'skip') return interaction.reply(skipMusic(interaction.guild.id) ? '⏭️ Skipped.' : '❌ Nothing is playing.');
-    if (commandName === 'stop') return interaction.reply(stopMusic(interaction.guild.id) ? '⏹️ Music stopped and queue cleared.' : '❌ Nothing is playing.');
-
-    const state = getQueue(interaction.guild.id);
-    if (commandName === 'nowplaying') {
-      return interaction.reply(state.current ? `🎵 Now playing: **${state.current.title}** — ${state.current.author}` : '🎵 Nothing is playing.');
-    }
-    return interaction.reply(state.current || state.queue.length
-      ? `🎶 Current: **${state.current?.title || 'Starting…'}**\\nQueued: **${state.queue.length}**`
-      : '🎵 The music queue is empty.');
-  }
-
-  if (['ai','ask','code','debug','rewrite','explain','translateai'].includes(commandName)) {
-    return interaction.reply(`🧠 AI command received${text ? `: **${text.slice(0,500)}**` : ''}\nConfigure an AI provider/API key on your host to enable generated responses.`);
-  }
-
-  if (['ban','kick','timeout','warn','purge','slowmode','lock','unlock'].includes(commandName)) return;
-
-  return interaction.reply({content:`❌ /${commandName} is not enabled yet.`, ephemeral:true});
+async function moderate(i,name) {
+  if(!guildOnly(i))return true;
+  const m=i.options.getMember('user'); if(!m)return i.reply({content:'Member not found.',ephemeral:true});
+  if(name==='ban'){await m.ban({reason:i.options.getString('reason')||'Lightcore'});return i.reply('🔨 Banned '+m.user.tag);}
+  if(name==='unban'){await i.guild.bans.remove(m.id);return i.reply('🔓 Unbanned '+m.user.tag);}
+  if(name==='kick'){await m.kick(i.options.getString('reason')||'Lightcore');return i.reply('👢 Kicked '+m.user.tag);}
+  if(name==='timeout'){const n=i.options.getInteger('minutes');await m.timeout(n*60000,'Lightcore');return i.reply('⏱️ Timed out '+m.user.tag+' for '+n+' minutes.');}
+  if(name==='untimeout'){await m.timeout(null,'Lightcore');return i.reply('▶️ Timeout removed.');}
+  if(name==='warn'){const k=key(i.guild.id,m.id),a=state.warnings.get(k)||[];a.push({reason:i.options.getString('reason')||'No reason',at:Date.now()});state.warnings.set(k,a);return i.reply('⚠️ Warned '+m.user.tag+'. Total: '+a.length);}
+  if(name==='warnings'){const a=state.warnings.get(key(i.guild.id,m.id))||[];return i.reply('⚠️ '+m.user.tag+' has '+a.length+' warning(s).\\n'+a.map((x,n)=>(n+1)+'. '+x.reason).join('\\n'));}
+  if(name==='clearwarnings'){state.warnings.delete(key(i.guild.id,m.id));return i.reply('🧹 Warnings cleared.');}
+  if(name==='nick'){await m.setNickname(i.options.getString('nickname'));return i.reply('✏️ Nickname updated.');}
 }
 
-export { CATALOG, REGISTERED, makeCommand, handle, buildHelpPayload, handleHelpInteraction };
+export async function handle(i,client) {
+  const n=i.commandName;
+  if(n==='help')return i.reply(buildHelpPayload());
+  if(n==='ping')return i.reply('🏓 Pong! '+client.ws.ping+'ms');
+  if(n==='uptime')return i.reply('⏱️ Uptime: '+Math.floor(process.uptime())+' seconds');
+  if(n==='botinfo')return i.reply('## ⚡ Lightcore\\nDiscord.js: 14.27.0\\nRegistered commands: '+REGISTERED.length+'\\nNode: '+process.version);
+  if(n==='stats')return i.reply('📊 Servers: '+client.guilds.cache.size+' • Commands: '+REGISTERED.length+' • Ping: '+client.ws.ping+'ms');
+  if(n==='serverinfo'){if(!guildOnly(i))return;const g=i.guild;return i.reply('## 🏠 '+g.name+'\\nMembers: '+g.memberCount+'\\nChannels: '+g.channels.cache.size+'\\nRoles: '+g.roles.cache.size);}
+  if(['userinfo','avatar','banner','level'].includes(n)){const u=i.options.getUser('user')||i.user;if(n==='avatar')return i.reply(u.displayAvatarURL({size:1024}));if(n==='banner')return i.reply(u.bannerURL({size:1024})||'No banner.');if(n==='level'){if(!guildOnly(i))return;const r=xpRow(i.guild.id,u.id);return i.reply('⭐ '+u.tag+' • Level '+r.level+' • '+r.xp+' XP');}return i.reply('👤 '+u.tag+' • ID '+u.id);}
+  if(n==='membercount'){if(!guildOnly(i))return;i.reply('👥 Members: '+i.guild.memberCount);}
+  if(n==='roles'){if(!guildOnly(i))return;i.reply(i.guild.roles.cache.filter(r=>r.name!=='@everyone').map(r=>'<@&'+r.id+'>').slice(0,50).join(' ')||'No roles.');}
+  if(n==='channels'){if(!guildOnly(i))return;i.reply(i.guild.channels.cache.map(c=>'<#'+c.id+'>').slice(0,80).join(' ')||'No channels.');}
+  if(n==='id')return i.reply('🆔 User: '+i.user.id+(i.guild?' • Server: '+i.guild.id:''));
+  if(n==='timestamp'){const raw=i.options.getString('date'),num=Number(raw),d=Number.isFinite(num)?new Date(num*1000):new Date(raw);if(Number.isNaN(d.getTime()))return i.reply({content:'Invalid date.',ephemeral:true});return i.reply('🕒 <t:'+Math.floor(d.getTime()/1000)+':F>');}
+  if(n==='choose'){const a=i.options.getString('text').split(',').map(x=>x.trim()).filter(Boolean);return i.reply('🎯 '+(a[Math.floor(Math.random()*a.length)]||'No choices.'));}
+  if(n==='invite')return i.reply('🔗 Configure CLIENT_ID in Render and generate the OAuth2 invite from the Discord Developer Portal.');
+  if(n==='support')return i.reply(process.env.SUPPORT_URL||'🆘 Set SUPPORT_URL in Render to show your support server.');
+  if(n==='remind'||n==='timer'){const ms=durationMs(i.options.getString('duration'));if(!ms)return i.reply({content:'Use 10s, 5m, 1h, or 1d.',ephemeral:true});const msg=n==='remind'?i.options.getString('message'):'Timer finished';await i.reply('⏰ Timer started.');setTimeout(()=>i.followUp('⏰ <@'+i.user.id+'> '+msg).catch(()=>{}),ms);return;}
+  if(n==='afk'){if(!guildOnly(i))return;const k=key(i.guild.id,i.user.id);if(state.afk.delete(k))return i.reply('👋 AFK removed.');state.afk.set(k,Date.now());return i.reply('💤 AFK enabled.');}
+  if(['ban','unban','kick','timeout','untimeout','warn','warnings','clearwarnings','nick'].includes(n))return moderate(i,n);
+  if(n==='purge'){if(!guildOnly(i))return;const x=await i.channel.bulkDelete(i.options.getInteger('amount'),true);return i.reply({content:'🧹 Deleted '+x.size+' messages.',ephemeral:true});}
+  if(n==='slowmode'){if(!guildOnly(i))return;await i.channel.setRateLimitPerUser(i.options.getInteger('seconds'));return i.reply('🐢 Slowmode updated.');}
+  if(n==='lock'||n==='unlock'){if(!guildOnly(i))return;await i.channel.permissionOverwrites.edit(i.guild.roles.everyone,{SendMessages:n==='lock'?false:null});return i.reply(n==='lock'?'🔒 Locked.':'🔓 Unlocked.');}
+  if(n==='say'||n==='announce')return i.reply((n==='announce'?'📢 ':'')+i.options.getString('text'));
+  if(n==='poll'){const e=new EmbedBuilder().setTitle('📊 '+i.options.getString('question')).setDescription(i.options.getString('options').split('|').map((x,k)=>(k+1)+'. '+x.trim()).join('\\n'));return i.reply({embeds:[e]});}
+  if(n==='rolecreate'){if(!guildOnly(i))return;const r=await i.guild.roles.create({name:i.options.getString('name'),reason:'Lightcore'});return i.reply('🎭 Created <@&'+r.id+'>.');}
+  if(n==='roledelete'){if(!guildOnly(i))return;await i.options.getRole('role').delete('Lightcore');return i.reply('🗑️ Role deleted.');}
+  if(n==='roleadd'||n==='roleremove'){if(!guildOnly(i))return;const m=i.options.getMember('user'),r=i.options.getRole('role');if(n==='roleadd')await m.roles.add(r);else await m.roles.remove(r);return i.reply(n==='roleadd'?'➕ Role added.':'➖ Role removed.');}
+  if(n==='channelcreate'){if(!guildOnly(i))return;const type=i.options.getString('type')==='voice'?ChannelType.GuildVoice:ChannelType.GuildText,c=await i.guild.channels.create({name:i.options.getString('name'),type});return i.reply('📁 Created <#'+c.id+'>.');}
+  if(n==='channeldelete'){if(!guildOnly(i))return;await i.options.getChannel('channel').delete('Lightcore');return i.reply('🗑️ Channel deleted.');}
+  if(n==='setup')return i.reply('## ⚙️ Lightcore Setup\\nModules: AutoMod • Logging • Welcome • Tickets • Giveaways • Economy • Levels • Music');
+  if(['automod','antispam','antilink','filterword','logging','welcome','goodbye'].includes(n)){if(!guildOnly(i))return;state.settings.set(key(i.guild.id,n),true);return i.reply('✅ '+n+' module enabled.');}
+  if(n==='ticket'){if(!guildOnly(i))return;const c=await i.guild.channels.create({name:'ticket-'+i.user.username.toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,18),type:ChannelType.GuildText,permissionOverwrites:[{id:i.guild.roles.everyone.id,deny:['ViewChannel']},{id:i.user.id,allow:['ViewChannel','SendMessages','ReadMessageHistory']} ]});state.tickets.set(c.id,i.user.id);return i.reply('🎫 Ticket created: <#'+c.id+'>');}
+  if(n==='ticketclose'){if(!guildOnly(i))return;return i.channel.delete('Lightcore ticket close');}
+  if(n==='ticketadd'||n==='ticketremove'){const m=i.options.getMember('user');if(n==='ticketadd')await i.channel.permissionOverwrites.edit(m.id,{ViewChannel:true,SendMessages:true});else await i.channel.permissionOverwrites.delete(m.id);return i.reply(n==='ticketadd'?'➕ Added.':'➖ Removed.');}
+  if(n==='ticketpanel')return i.reply('🎫 Ticket panel enabled. Use /ticket to create a private ticket.');
+  if(n==='giveaway'||n==='giveawayend'||n==='giveawayreroll')return i.reply('🎁 Non-wagering giveaway module is enabled; persistence can be connected to the bot database.');
+  if(['balance','daily','work','pay','shop','inventory','leaderboard'].includes(n)){if(!guildOnly(i))return;if(n==='balance')return i.reply('💰 '+wallet(i.guild.id,i.user.id)+' coins.');if(n==='daily'){setWallet(i.guild.id,i.user.id,wallet(i.guild.id,i.user.id)+250);return i.reply('💰 +250 daily coins.');}if(n==='work'){const x=50+Math.floor(Math.random()*151);setWallet(i.guild.id,i.user.id,wallet(i.guild.id,i.user.id)+x);return i.reply('💼 Earned '+x+' coins.');}if(n==='pay'){const u=i.options.getUser('user'),a=i.options.getInteger('amount'),b=wallet(i.guild.id,i.user.id);if(u.id===i.user.id||b<a)return i.reply({content:'Invalid payment or insufficient balance.',ephemeral:true});setWallet(i.guild.id,i.user.id,b-a);setWallet(i.guild.id,u.id,wallet(i.guild.id,u.id)+a);return i.reply('💸 Paid '+a+' coins to <@'+u.id+'>.');}if(n==='shop')return i.reply('🛒 Shop: VIP 1000 coins • Color Role 500 coins.');if(n==='inventory')return i.reply('🎒 Inventory is ready for persistent items.');const rows=[...state.balances.entries()].filter(([k])=>k.startsWith(i.guild.id+':')).sort((a,b)=>b[1]-a[1]).slice(0,10);return i.reply('🏆 '+(rows.map(([k,v],x)=>(x+1)+'. <@'+k.split(':')[1]+'> — '+v).join('\\n')||'No balances yet.'));}
+  if(['rank','xpgive','levelgive','leaderboardxp'].includes(n)){if(!guildOnly(i))return;if(n==='rank'){const r=xpRow(i.guild.id,i.user.id);return i.reply('⭐ Level '+r.level+' • '+r.xp+' XP');}if(n==='xpgive'){const u=i.options.getUser('user'),r=addXp(i.guild.id,u.id,i.options.getInteger('amount'));return i.reply('⭐ '+u.tag+' is now level '+r.level+'.');}if(n==='levelgive'){const u=i.options.getUser('user'),r=addXp(i.guild.id,u.id,i.options.getInteger('amount')*100);return i.reply('⭐ '+u.tag+' is now level '+r.level+'.');}const rows=[...state.xp.entries()].filter(([k])=>k.startsWith(i.guild.id+':')).sort((a,b)=>b[1].xp-a[1].xp).slice(0,10);return i.reply('🏆 '+(rows.map(([k,v],x)=>(x+1)+'. <@'+k.split(':')[1]+'> — Lv '+v.level).join('\\n')||'No XP yet.'));}
+  if(n==='coin')return i.reply(Math.random()<.5?'🪙 Heads!':'🪙 Tails!');
+  if(n==='dice')return i.reply('🎲 '+(1+Math.floor(Math.random()*6)));
+  if(n==='8ball')return i.reply('🎱 '+['Definitely.','Probably.','Ask again later.','Not likely.','Absolutely.'][Math.floor(Math.random()*5)]);
+  if(n==='joke')return i.reply('😂 Why did the developer bring a ladder? To reach the next level.');
+  if(n==='rate'||n==='ship')return i.reply('⭐ '+Math.floor(Math.random()*101)+'%');
+  if(n==='rps'){const a=i.options.getString('choice').toLowerCase(),b=['rock','paper','scissors'][Math.floor(Math.random()*3)];if(!['rock','paper','scissors'].includes(a))return i.reply({content:'Choose rock, paper, or scissors.',ephemeral:true});const win=a===b?'Tie':((a==='rock'&&b==='scissors')||(a==='paper'&&b==='rock')||(a==='scissors'&&b==='paper')?'You win':'I win');return i.reply('🎮 '+a+' vs '+b+' — '+win+'!');}
+  if(n==='trivia')return i.reply('🎮 Trivia module enabled. Add your question pack/database when ready.');
+  if(['play','pause','resume','skip','stop','queue','nowplaying'].includes(n)){if(!guildOnly(i))return;if(n==='play'){const vc=i.member?.voice?.channel;if(!vc)return i.reply({content:'Join a voice channel first.',ephemeral:true});await i.deferReply();try{const t=await playMusic({guild:i.guild,voiceChannel:vc,textChannel:i.channel,query:i.options.getString('song')});return i.editReply('🎶 Added '+t.title);}catch(e){console.error(e);return i.editReply('❌ Could not play that track.');}}if(n==='pause')return i.reply(pauseMusic(i.guild.id)?'⏸️ Paused.':'Nothing is playing.');if(n==='resume')return i.reply(resumeMusic(i.guild.id)?'▶️ Resumed.':'Nothing is paused.');if(n==='skip')return i.reply(skipMusic(i.guild.id)?'⏭️ Skipped.':'Nothing is playing.');if(n==='stop')return i.reply(stopMusic(i.guild.id)?'⏹️ Stopped.':'Nothing is playing.');const q=getQueue(i.guild.id);return i.reply(n==='queue'?'🎵 Queue: '+q.queue.length:'🎵 Now playing: '+(q.current?.title||'Nothing'));}
+  if(n==='premium'||n==='noprefix'){if(i.user.id!==ownerId)return i.reply({content:'Owner only.',ephemeral:true});const sub=i.options.getSubcommand(),u=i.options.getUser('user');if(sub==='grant'){const d=i.options.getInteger('days');n==='premium'?grantPremium('user',u.id,d):grantNoPrefix('user',u.id,d);return i.reply('👑 Granted '+n+' to <@'+u.id+'>.');}if(sub==='revoke'){n==='premium'?revokePremium('user',u.id):revokeNoPrefix('user',u.id);return i.reply('🧹 Revoked '+n+'.');}if(sub==='status')return i.reply('👑 '+n+': '+(n==='premium'?Boolean(premiumExpiry('user',u.id)):hasNoPrefix(u.id,i.guildId)));if(sub==='list')return i.reply('👑 Premium grants: '+listPremium().length);}
+  return i.reply({content:'This command is not available in the current core.',ephemeral:true});
+}
+
+export { handle as default };
