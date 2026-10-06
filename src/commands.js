@@ -32,7 +32,7 @@ const definitions = [
   ['slowmode','moderation'],['lock','moderation'],['unlock','moderation'],['nick','moderation'],
   ['announce','administration'],['say','administration'],['poll','administration'],['rolecreate','administration'],
   ['roledelete','administration'],['roleadd','administration'],['roleremove','administration'],
-  ['channelcreate','administration'],['channeldelete','administration'],['setup','administration'],
+  ['channelcreate','administration'],['channeldelete','administration'],['categorydelete','administration'],['setup','administration'],
   ['automod','automod'],['antispam','automod'],['antilink','automod'],['filterword','automod'],
   ['logging','logging'],['welcome','welcome'],['goodbye','welcome'],['autoresponder','administration'],
   ['ticket','tickets'],['ticketclose','tickets'],['ticketadd','tickets'],['ticketremove','tickets'],['ticketpanel','tickets'],
@@ -63,7 +63,7 @@ const commandPermissions = {
   nick: PermissionFlagsBits.ManageNicknames, rolecreate: PermissionFlagsBits.ManageRoles,
   roledelete: PermissionFlagsBits.ManageRoles, roleadd: PermissionFlagsBits.ManageRoles,
   roleremove: PermissionFlagsBits.ManageRoles, channelcreate: PermissionFlagsBits.ManageChannels,
-  channeldelete: PermissionFlagsBits.ManageChannels, setup: PermissionFlagsBits.ManageGuild,
+  channeldelete: PermissionFlagsBits.ManageChannels, categorydelete: PermissionFlagsBits.ManageChannels, setup: PermissionFlagsBits.ManageGuild,
   automod: PermissionFlagsBits.ManageGuild, antispam: PermissionFlagsBits.ManageGuild,
   antilink: PermissionFlagsBits.ManageGuild, filterword: PermissionFlagsBits.ManageGuild,
   logging: PermissionFlagsBits.ManageGuild, logsetupauto: PermissionFlagsBits.ManageChannels,
@@ -495,6 +495,31 @@ export function buildHelpPayload(selected='overview') {
   return {flags:MessageFlags.IsComponentsV2,components:[box]};
 }
 
+export async function handleCategoryDeleteInteraction(i,client) {
+  if(!i.isButton()&&!i.isStringSelectMenu())return false;
+  if(i.customId==='categorydelete:select' && i.isStringSelectMenu()){
+    const id=i.values[0], category=i.guild?.channels.cache.get(id);
+    if(!category || category.type!==ChannelType.GuildCategory)return styledReply(i,{content:'❌ That category no longer exists.',ephemeral:true});
+    const channels=[...category.children.cache.values()];
+    const confirm=new ButtonBuilder().setCustomId('categorydelete:confirm:'+id).setLabel('Delete Category & Channels').setStyle(ButtonStyle.Danger);
+    const cancel=new ButtonBuilder().setCustomId('categorydelete:cancel').setLabel('Cancel').setStyle(ButtonStyle.Secondary);
+    return i.update({content:'⚠️ Delete '+category.name+'?\nThis will permanently delete '+channels.length+' channel(s) inside it and then delete the category itself.\n\nThis cannot be undone.',components:[new ActionRowBuilder().addComponents(confirm,cancel)]});
+  }
+  if(i.isButton()&&i.customId==='categorydelete:cancel')return i.update({content:'❌ Category deletion cancelled.',components:[]});
+  if(i.isButton()&&i.customId.startsWith('categorydelete:confirm:')){
+    if(!i.guild)return i.update({content:'❌ This command can only be used in a server.',components:[]});
+    const id=i.customId.split(':')[2], category=i.guild.channels.cache.get(id);
+    if(!category || category.type!==ChannelType.GuildCategory)return i.update({content:'❌ That category no longer exists.',components:[]});
+    if(!i.memberPermissions?.has(PermissionFlagsBits.ManageChannels) && i.user.id!==ownerId)return i.update({content:'❌ You need Manage Channels to do this.',components:[]});
+    await i.deferUpdate();
+    const channels=[...category.children.cache.values()];
+    let deleted=0;
+    for(const channel of channels){await channel.delete('Lightcore categorydelete').then(()=>deleted++).catch(()=>{});}
+    await category.delete('Lightcore categorydelete').catch(()=>null);
+    return i.editReply({content:'🗑️ Deleted category '+category.name+' and '+deleted+' channel(s).',components:[]});
+  }
+  return false;
+}
 export async function handleHelpInteraction(i,client) {
   if(!i.isButton()&&!i.isStringSelectMenu())return false;
   if(!i.customId.startsWith('lightcore:'))return false;
@@ -562,6 +587,13 @@ export async function handle(i,client) {
   if(n==='roleadd'||n==='roleremove'){if(!guildOnly(i))return;const m=i.options.getMember('user'),r=i.options.getRole('role');if(n==='roleadd')await m.roles.add(r);else await m.roles.remove(r);return styledReply(i, n==='roleadd'?'➕ Role added.':'➖ Role removed.');}
   if(n==='channelcreate'){if(!guildOnly(i))return;const type=i.options.getString('type')==='voice'?ChannelType.GuildVoice:ChannelType.GuildText,c=await i.guild.channels.create({name:i.options.getString('name'),type});return styledReply(i, '📁 Created <#'+c.id+'>.');}
   if(n==='channeldelete'){if(!guildOnly(i))return;await i.options.getChannel('channel').delete('Lightcore');return styledReply(i, '🗑️ Channel deleted.');}
+  if(n==='categorydelete'){
+    if(!guildOnly(i))return;
+    const categories=i.guild.channels.cache.filter(c=>c.type===ChannelType.GuildCategory);
+    if(!categories.size)return styledReply(i,{content:'📁 No categories found in this server.',ephemeral:true});
+    const menu=new StringSelectMenuBuilder().setCustomId('categorydelete:select').setPlaceholder('Select a category to delete').addOptions([...categories.values()].slice(0,25).map(c=>({label:c.name.slice(0,100),value:c.id,description:'Delete this category and all channels inside it'})));
+    return styledReply(i,{content:'⚠️ Category Delete\nSelect a category below. This will permanently delete the category and every channel inside it.',components:[new ActionRowBuilder().addComponents(menu)],ephemeral:true});
+  }
   if(n==='welcome'){if(!guildOnly(i))return;const channel=i.options.getChannel('channel');const message=i.options.getString('message');setWelcome(i.guild.id,channel.id,message);return styledReply(i, '👋 Welcome system configured for <#'+channel.id+'>.\nPlaceholders: {user}, {username}, {server}, {membercount}, {id}.');}
   if(n==='goodbye'){if(!guildOnly(i))return;return styledReply(i, '👋 Goodbye module is ready; use the welcome configuration/database for your goodbye channel.');}
   if(n==='autoresponder'){if(!guildOnly(i))return;const action=i.options.getString('action'),trigger=i.options.getString('trigger'),response=i.options.getString('response');if(action==='list'){const data=getAutoresponders(i.guild.id);return styledReply(i, '🤖 Autoresponders: '+(Object.keys(data).length?Object.keys(data).map(x=>'`'+x+'`').join(', '):'None'));}if(!trigger)return styledReply(i, {content:'Trigger is required for this action.',ephemeral:true});if(action==='remove'){removeAutoresponder(i.guild.id,trigger);return styledReply(i, '🗑️ Removed autoresponder `'+trigger+'`.');}if(!response)return styledReply(i, {content:'Response is required when adding an autoresponder.',ephemeral:true});setAutoresponder(i.guild.id,trigger,response);return styledReply(i, '🤖 Autoresponder saved for `'+trigger+'`.');}
