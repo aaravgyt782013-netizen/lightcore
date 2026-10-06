@@ -6,7 +6,7 @@ import {
 } from 'discord.js';
 import { styledReply, styledFollowUp, styledEditReply } from './ui.js';
 import { playMusic, pauseMusic, resumeMusic, skipMusic, stopMusic, getQueue } from './music.js';
-import { grantPremium, revokePremium, listPremium, premiumExpiry, grantNoPrefix, revokeNoPrefix, hasNoPrefix } from './premium.js';
+import { grantPremium, revokePremium, listPremium, premiumExpiry, grantNoPrefix, revokeNoPrefix, hasNoPrefix, isPremium, getPremiumBranding, setPremiumBranding, resetPremiumBranding } from './premium.js';
 import { setWelcome, clearWelcome, getWelcome, setAutoresponder, removeAutoresponder, getAutoresponders } from './server-config.js';
 import { getUserStats, getGuildStats, getTopStats, addCounter, removeCounter, listCounters } from './stats.js';
 import { getAntiNukeStatus, configureAntiNuke, resetAntiNuke, changeAntiNukeBypass, antiNukeStatusText, antiNukeConfigText, antiNukeBypassText, antiNukeWhitelistText } from './antinuke.js';
@@ -23,7 +23,7 @@ const state = {
 };
 
 const definitions = [
-  ['help','utility'],['ping','utility'],['uptime','utility'],['botinfo','utility'],['serverinfo','utility'],
+  ['help','utility'],['lc','utility'],['premiuminfo','premium'],['premiumbrand','premium'],['serverhealth','premium'],['activityreport','premium'],['ping','utility'],['uptime','utility'],['botinfo','utility'],['serverinfo','utility'],
   ['userinfo','utility'],['avatar','utility'],['banner','utility'],['membercount','utility'],['roles','utility'],
   ['channels','utility'],['id','utility'],['timestamp','utility'],['choose','utility'],['remind','utility'],
   ['timer','utility'],['afk','utility'],['stats','utility'],['invite','utility'],['support','utility'],
@@ -81,7 +81,8 @@ const commandPermissions = {
   xpreset: PermissionFlagsBits.ManageGuild, xpset: PermissionFlagsBits.ManageGuild,
   xpadd: PermissionFlagsBits.ManageGuild, xpremove: PermissionFlagsBits.ManageGuild,
   xpgive: PermissionFlagsBits.ManageGuild, levelgive: PermissionFlagsBits.ManageGuild,
-  premium: PermissionFlagsBits.Administrator, noprefix: PermissionFlagsBits.Administrator
+  premium: PermissionFlagsBits.Administrator, noprefix: PermissionFlagsBits.Administrator,
+  premiumbrand: PermissionFlagsBits.ManageGuild
 };
 
 export function getCommandPermission(name) {
@@ -193,6 +194,8 @@ export function makeCommand(name, category) {
   if (name === 'xpgive' || name === 'levelgive') { userOption(b); intOption(b,'amount',true,1,1000000); }
   if (name === 'play') textOption(b,'song');
   if (name === 'rps') textOption(b,'choice');
+  if (name === 'lc') { b.addStringOption(o=>o.setName('command').setDescription('Any Lightcore command').setRequired(true).setAutocomplete(true)); b.addStringOption(o=>o.setName('args').setDescription('Command arguments').setRequired(false)); }
+  if (name === 'premiumbrand') { b.addStringOption(o=>o.setName('action').setDescription('Branding action').setRequired(true).addChoices({name:'Name',value:'name'},{name:'Logo',value:'logo'},{name:'Banner',value:'banner'},{name:'Reset',value:'reset'},{name:'Status',value:'status'})); b.addStringOption(o=>o.setName('value').setDescription('Text or image URL').setRequired(false)); }
   if (name === 'premium' || name === 'noprefix') {
     b.addSubcommand(s=>s.setName('grant').setDescription('Grant access').addUserOption(o=>o.setName('user').setDescription('User').setRequired(true)).addIntegerOption(o=>o.setName('days').setDescription('Days').setMinValue(1).setMaxValue(3650)));
     b.addSubcommand(s=>s.setName('revoke').setDescription('Revoke access').addUserOption(o=>o.setName('user').setDescription('User').setRequired(true)));
@@ -264,6 +267,10 @@ export async function handle(i,client) {
   if(n==='giveawaycreate'){if(!guildOnly(i))return;const d=i.options.getString('duration');const prize=i.options.getString('prize');const winners=i.options.getInteger('winners');const channel=i.options.getChannel?.('channel')||i.channel;const m=/^(\d+)\s*(s|m|h|d|w)$/i.exec(d||'');if(!m)return styledReply(i,'❌ Duration: 30s, 10m, 2h, 1d, or 1w.');const mult={s:1000,m:60000,h:3600000,d:86400000,w:604800000}[m[2].toLowerCase()];const g=createGiveaway(i.guild.id,channel.id,i.user.id,prize,winners,Date.now()+Number(m[1])*mult);const msg=await channel.send(giveawayPayload(g));setGiveawayMessage(g.id,msg.id);return styledReply(i,'🎁 Giveaway created in '+channel+' — ID: `'+g.id+'`');}
   if(n==='giveawayend'){if(!guildOnly(i))return;const g=getGiveaway(i.options.getString('id'));if(!g||g.guild_id!==i.guild.id)return styledReply(i,'❌ Giveaway not found.');const result=endGiveaway(g.id);if(!result)return styledReply(i,'❌ Giveaway already ended.');const ch=i.guild.channels.cache.get(g.channel_id);if(ch?.isTextBased()&&g.message_id)await ch.messages.fetch(g.message_id).then(m=>m.edit(giveawayPayload(result,true))).catch(()=>{});return styledReply(i,'🎉 Giveaway ended. Winners: '+(result.winnersPicked.map(x=>'<@'+x+'>').join(', ')||'none'));}
   if(['gay','simp','howhot'].includes(n)){const u=i.options.getUser?.('user')||i.user;const score=Math.floor(Math.random()*101);const labels={gay:'🌈 Gay Meter',simp:'💖 Simp Meter',howhot:'🎲 Random Rating'};return styledReply(i,{title:labels[n],content:'For fun only — random joke score, not a real measurement.\n\n'+u+' → **'+score+'%**'});}
+  if(n==='premiuminfo'){if(!guildOnly(i))return;const active=isPremium(i.user.id,i.guild.id);const b=getPremiumBranding(i.guild.id);return styledReply(i,{title:'👑 Premium',content:'Status: **'+(active?'Active':'Not active')+'**\\nServer branding: **'+(b.name||i.guild.name)+'**\\nLogo: '+(b.logo_url?'Configured':'Default')+'\\nBanner: '+(b.banner_url?'Configured':'Default')+'\\n\\nPremium includes branded Lightcore responses, premium server tools, and no-prefix access when granted.'});}
+  if(n==='premiumbrand'){if(!guildOnly(i))return;if(i.user.id!==ownerId&&!isPremium(i.user.id,i.guild.id))return styledReply(i,{content:'👑 This is a Premium-only feature. Ask the server owner to grant Premium to your account or server.',ephemeral:true});if(i.user.id!==ownerId&&!i.memberPermissions?.has(PermissionFlagsBits.ManageGuild))return styledReply(i,{content:'You need Manage Server to change server branding.',ephemeral:true});const action=i.options.getString('action'),value=i.options.getString('value');if(action==='reset'){resetPremiumBranding(i.guild.id);return styledReply(i,'🧹 Premium branding reset to the server defaults.');}if(action==='status'){const b=getPremiumBranding(i.guild.id);return styledReply(i,{title:'👑 Premium Branding',content:'Name: **'+(b.name||i.guild.name)+'**\\nLogo: '+(b.logo_url||'Default')+'\\nBanner: '+(b.banner_url||'Default')});}if(!value)return styledReply(i,{content:'Provide a value. Use a normal name for name, or a direct HTTPS image URL for logo/banner.',ephemeral:true});if(action==='name'){const name=value.trim().slice(0,80);if(!name)return styledReply(i,{content:'Name cannot be empty.',ephemeral:true});setPremiumBranding(i.guild.id,{name});return styledReply(i,'✨ Premium server name set to **'+name+'**.');}if(!/^https:\/\/\S+$/i.test(value))return styledReply(i,{content:'Logo and banner must be a direct HTTPS image URL.',ephemeral:true});if(action==='logo')setPremiumBranding(i.guild.id,{logo_url:value});else if(action==='banner')setPremiumBranding(i.guild.id,{banner_url:value});else return styledReply(i,{content:'Choose name, logo, banner, reset, or status.',ephemeral:true});return styledReply(i,'✨ Premium '+action+' updated.');}
+  if(n==='serverhealth'){if(!guildOnly(i))return;if(!isPremium(i.user.id,i.guild.id))return styledReply(i,{content:'👑 Server Health is Premium-only.',ephemeral:true});const g=i.guild;const humans=g.members.cache.filter(m=>!m.user.bot).size;const bots=g.members.cache.filter(m=>m.user.bot).size;return styledReply(i,{title:'🩺 Premium Server Health',content:'Members: **'+g.memberCount+'**\\nHumans: **'+humans+'**\\nBots: **'+bots+'**\\nChannels: **'+g.channels.cache.size+'**\\nRoles: **'+g.roles.cache.size+'**\\nBoosts: **'+g.premiumSubscriptionCount+'**\\nBoost level: **'+g.premiumTier+'**\\nVerification: **'+g.verificationLevel+'**'});}
+  if(n==='activityreport'){if(!guildOnly(i))return;if(!isPremium(i.user.id,i.guild.id))return styledReply(i,{content:'👑 Activity Report is Premium-only.',ephemeral:true});const rows=getTopStats(i.guild.id,'messages',10);const lines=rows.map((r,k)=>'**'+(k+1)+'.** <@'+r.user_id+'> — '+r.value+' messages');return styledReply(i,{title:'📈 Premium Activity Report',content:lines.length?lines.join('\\n'):'No activity recorded yet.'});}
   if(n==='help')return styledReply(i, buildHelpPayload());
   if(n==='logsetupauto'){if(!guildOnly(i))return;const created=await setupLogChannels(i.guild);return styledReply(i,{title:'📜 LC logs — Automatic Setup',content:created.message+'\\n\\n**Category:** `'+getLogCategoryName()+'`\\n\\n**Created logging channels:**\\n'+getSecurityChannelNames().map(x=>'• #'+x).join('\\n')+'\\n\\n**Required bot permissions:**\\n• Manage Channels\\n• View Audit Log\\n• Manage Webhooks'});}
   if(n==='ping')return styledReply(i, '🏓 Pong! '+client.ws.ping+'ms');
