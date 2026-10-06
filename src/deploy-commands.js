@@ -21,8 +21,8 @@ try {
   await rest.put(Routes.applicationCommands(clientId), { body });
   console.log('Global slash commands synchronized.');
 
-  // Login so we can enumerate every guild the bot is actually in.
-  // Each guild is overwritten with the same repository set, removing stale guild-only commands.
+  // Global commands are the single source of truth.
+  // Clear guild-scoped commands so old guild registrations cannot appear as duplicates.
   const client = new Client({ intents: [GatewayIntentBits.Guilds] });
   await client.login(token);
   await new Promise(resolve => {
@@ -31,11 +31,11 @@ try {
   });
 
   const guilds = [...client.guilds.cache.values()];
-  console.log('Synchronizing guild slash commands:', guilds.length);
+  console.log('Removing stale guild-scoped slash commands:', guilds.length);
 
   for (const guild of guilds) {
-    await rest.put(Routes.applicationGuildCommands(clientId, guild.id), { body });
-    console.log('Synced:', guild.name, guild.id);
+    await rest.put(Routes.applicationGuildCommands(clientId, guild.id), { body: [] });
+    console.log('Cleared guild commands:', guild.name, guild.id);
   }
 
   await client.destroy();
