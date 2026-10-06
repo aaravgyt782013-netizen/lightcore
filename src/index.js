@@ -7,6 +7,7 @@ import { getLogConfig } from './logs.js';
 import { runAutoResponder, runAutoReactor } from './auto.js';
 import { hasNoPrefix } from './premium.js';
 import { getWelcome } from './server-config.js';
+import { cardMessage, styledReply } from './ui.js';
 
 const token = process.env.DISCORD_TOKEN;
 const port = Number(process.env.PORT || 3000);
@@ -40,7 +41,7 @@ client.on('guildMemberAdd', async (member) => {
   if (!cfg.channelId) return;
   const channel = member.guild.channels.cache.get(cfg.channelId) || await member.guild.channels.fetch(cfg.channelId).catch(() => null);
   if (!channel?.isTextBased()) return;
-  await channel.send(renderWelcome(cfg.message, member)).catch(() => {});
+  await channel.send(cardMessage('👋 Welcome', renderWelcome(cfg.message, member))).catch(() => {});
 });
 
 client.on('guildMemberRemove', member => { if(!member.user.bot) recordLeave(member.guild.id,member.id); });
@@ -53,7 +54,7 @@ client.on('voiceStateUpdate', (oldState,newState) => {
   if(oldState.channelId && !newState.channelId){const started=voiceSessions.get(key);if(started)addVoiceSeconds(gid,id,(Date.now()-started)/1000);voiceSessions.delete(key);}
 });
 
-async function sendConfiguredLog(guild,event,text){const cfg=getLogConfig(guild.id);if(!cfg?.channel_id)return;const ch=guild.channels.cache.get(cfg.channel_id);if(ch?.isTextBased())await ch.send('📜 **'+event+'**\\n'+text).catch(()=>{});}
+async function sendConfiguredLog(guild,event,text){const cfg=getLogConfig(guild.id);if(!cfg?.channel_id)return;const ch=guild.channels.cache.get(cfg.channel_id);if(ch?.isTextBased())await ch.send(cardMessage('📜 '+event,text)).catch(()=>{});}
 
 client.on('guildDelete', async (guild) => {
   const support = process.env.SUPPORT_URL || supportUrl;
@@ -73,7 +74,7 @@ client.on('interactionCreate', async (interaction) => {
       if (await handleTicketInteraction(interaction, client)) return;
     } catch (error) {
       console.error('Help component error:', error);
-      if (!interaction.replied && !interaction.deferred) await interaction.reply({content:'💥 Help menu error.', ephemeral:true}).catch(() => {});
+      if (!interaction.replied && !interaction.deferred) await styledReply(interaction,{content:'💥 Help menu error.', ephemeral:true}).catch(() => {});
     }
     return;
   }
@@ -156,7 +157,7 @@ client.on('messageCreate', async (message) => {
   const commandName = parts.shift()?.toLowerCase();
   if (!commandName || !REGISTERED.some(c => c.name === commandName)) return;
   try { recordCommand(message.guild.id,message.author.id); await handle(createMessageInteraction(message, commandName, parts), client); }
-  catch (error) { console.error('Prefix/no-prefix command error:', error); await message.reply('💥 Something went wrong while running that command.').catch(() => {}); }
+  catch (error) { console.error('Prefix/no-prefix command error:', error); await message.reply(cardMessage('⚠️ Command Error','💥 Something went wrong while running that command.')).catch(() => {}); }
 });
 
 const server = http.createServer((req, res) => {
