@@ -1,4 +1,5 @@
 import { Readable } from 'node:stream';
+import { cardMessage } from './ui.js';
 import ffmpegPath from 'ffmpeg-static';
 import { Innertube, UniversalCache, YTNodes } from 'youtubei.js';
 import {
@@ -150,12 +151,12 @@ async function playNext(state) {
     state.resource = resource;
     state.player.play(resource);
 
-    await state.channel?.send(
+    await state.channel?.send(cardMessage('🎵 Music',
       `🎵 Now playing **${track.title}** — ${track.author}\n<${track.url}>`
     ).catch(() => {});
   } catch (error) {
     console.error('[music] stream:', error);
-    await state.channel?.send('❌ I could not start that track. Try another song or link.').catch(() => {});
+    await state.channel?.send(cardMessage('❌ Music Error','I could not start that track. Try another song or link.')).catch(() => {});
     state.current = null;
     state.resource = null;
     setImmediate(() => playNext(state).catch(() => {}));
