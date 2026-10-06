@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import http from 'node:http';
 import { Client, GatewayIntentBits, Partials } from 'discord.js';
-import { handle, REGISTERED, handleHelpInteraction, handleTicketInteraction } from './commands.js';
+import { handle, REGISTERED, handleHelpInteraction, handleTicketInteraction, commandUsagePayload } from './commands.js';
 import { recordMessage, recordCommand, recordJoin, recordLeave, addVoiceSeconds } from './stats.js';
 import { getLogConfig } from './logs.js';
 import { runAutoResponder, runAutoReactor } from './auto.js';
@@ -164,7 +164,7 @@ client.on('interactionCreate', async (interaction) => {
   try { await handle(interaction, client); }
   catch (error) {
     console.error('Command error:', error);
-    const payload = { content: '💥 Something went wrong while running that command.', ephemeral: true };
+    const payload = commandUsagePayload(interaction.commandName, 'The command could not be completed. Check the usage and example below.');
     if (interaction.replied || interaction.deferred) await interaction.followUp(payload).catch(() => {});
     else await interaction.reply(payload).catch(() => {});
   }
@@ -243,7 +243,7 @@ client.on('messageCreate', async (message) => {
   const commandName = parts.shift()?.toLowerCase();
   if (!commandName || !REGISTERED.some(c => c.name === commandName)) return;
   try { recordCommand(message.guild.id,message.author.id); await handle(createMessageInteraction(message, commandName, parts), client); }
-  catch (error) { console.error('Prefix/no-prefix command error:', error); await message.reply(cardMessage('⚠️ Command Error','💥 Something went wrong while running that command.')).catch(() => {}); }
+  catch (error) { console.error('Prefix/no-prefix command error:', error); await message.reply(commandUsagePayload(commandName, 'The command could not be completed. Check the usage and example below.')).catch(() => {}); }
 });
 
 const server = http.createServer((req, res) => {
