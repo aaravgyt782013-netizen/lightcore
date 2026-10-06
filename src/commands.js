@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, PermissionFlagsBits, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, MessageFlags, ChannelType } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, MessageFlags, ChannelType } from 'discord.js';
 import { playMusic, pauseMusic, resumeMusic, skipMusic, stopMusic, getQueue } from './music.js';
 import { grantPremium, revokePremium, listPremium, premiumExpiry, grantNoPrefix, revokeNoPrefix, hasNoPrefix, isPremium } from './premium.js';
 
@@ -156,7 +156,7 @@ function makeCommand(name, category) {
 
   // Safe, commonly useful options. They are optional so generic catalog
   // commands can still work without extra configuration.
-  if (['userinfo','avatar','ban','kick','timeout','untimeout','warn','pay','roleadd','roleremove','roledelete','nick'].includes(name)) {
+  if (['userinfo','avatar','ban','kick','timeout','untimeout','warn','pay','roledelete','nick'].includes(name)) {
     b.addUserOption(o => o.setName('user').setDescription('Target user').setRequired(false));
   }
   if (name === 'play') {
