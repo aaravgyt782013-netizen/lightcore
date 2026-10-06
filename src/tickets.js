@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import { cardMessage } from './ui.js';
+import { ChannelType, PermissionFlagsBits } from 'discord.js';
 
 const db = new Database(process.env.LIGHTCORE_DB_PATH || process.env.PREMIUM_DB_PATH || 'lightcore.sqlite');
 db.exec(`
@@ -26,14 +26,29 @@ CREATE TABLE IF NOT EXISTS ticket_records (
  closed_at INTEGER
 );
 `);
-
 function ensure(guildId){db.prepare('INSERT INTO ticket_config(guild_id) VALUES(?) ON CONFLICT(guild_id) DO NOTHING').run(String(guildId));}
 export function getTicketConfig(guildId){ensure(guildId);const r=db.prepare('SELECT * FROM ticket_config WHERE guild_id=?').get(String(guildId));try{r.categories=JSON.parse(r.categories||'[]')}catch{r.categories=[]}return r;}
-export function updateTicketConfig(guildId, patch){ensure(guildId);const allowed=['category_id','log_channel_id','transcript_channel_id','staff_role_id','panel_channel_id','panel_message_id','panel_title','panel_message','welcome_message'];const sets=[];const vals=[];for(const k of allowed)if(patch[k]!==undefined){sets.push(k+'=?');vals.push(patch[k])}if(patch.categories!==undefined){sets.push('categories=?');vals.push(JSON.stringify(patch.categories))}if(sets.length)db.prepare('UPDATE ticket_config SET '+sets.join(',')+' WHERE guild_id=?').run(...vals,String(guildId));return getTicketConfig(guildId);}
+export function updateTicketConfig(guildId,patch){ensure(guildId);const allowed=['category_id','log_channel_id','transcript_channel_id','staff_role_id','panel_channel_id','panel_message_id','panel_title','panel_message','welcome_message'];const sets=[],vals=[];for(const k of allowed)if(patch[k]!==undefined){sets.push(k+'=?');vals.push(patch[k])}if(patch.categories!==undefined){sets.push('categories=?');vals.push(JSON.stringify(patch.categories))}if(sets.length)db.prepare('UPDATE ticket_config SET '+sets.join(',')+' WHERE guild_id=?').run(...vals,String(guildId));return getTicketConfig(guildId);}
 export function addTicketCategory(guildId,category){const c=getTicketConfig(guildId);const key=String(category.key||category.name).toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,40);c.categories=c.categories.filter(x=>x.key!==key);c.categories.push({key,name:String(category.name).slice(0,80),description:String(category.description||'').slice(0,100),emoji:category.emoji||'🎫'});return updateTicketConfig(guildId,{categories:c.categories});}
 export function removeTicketCategory(guildId,key){const c=getTicketConfig(guildId);return updateTicketConfig(guildId,{categories:c.categories.filter(x=>x.key!==String(key).toLowerCase())});}
 export function createTicketRecord(row){db.prepare('INSERT OR REPLACE INTO ticket_records(channel_id,guild_id,owner_id,category,created_at) VALUES(?,?,?,?,?)').run(row.channelId,row.guildId,row.ownerId,row.category,Math.floor(Date.now()/1000));}
 export function getTicketRecord(channelId){return db.prepare('SELECT * FROM ticket_records WHERE channel_id=?').get(String(channelId));}
+export function getOpenTicket(guildId,ownerId,category){return db.prepare('SELECT * FROM ticket_records WHERE guild_id=? AND owner_id=? AND category=? AND closed_at IS NULL').get(String(guildId),String(ownerId),String(category));}
 export function closeTicketRecord(channelId){db.prepare('UPDATE ticket_records SET closed_at=? WHERE channel_id=?').run(Math.floor(Date.now()/1000),String(channelId));}
-export function claimTicket(channelId,userId){db.prepare('UPDATE ticket_records SET claimed_by=? WHERE channel_id=?').run(String(userId),String(channelId));}
-export function listTicketRecords(guildId){return db.prepare('SELECT * FROM ticket_records WHERE guild_id=? ORDER BY created_at DESC LIMIT 100').all(String(guildId));}
+export function claimTicket(channelId,userId){db.prepare('UPDATE ticket_records SET claimed_by=? WHERE channel_id=?').run(String(userId||''),String(channelId));}
+export function listTicketRecords(guildId){return db.prepare('SELECT * FROM ticket_records WHERE guild_id=? ORDER BY created_at DESC').all(String(guildId));}
+
+export async function autoSetupTickets(guild,panelChannel){
+  const me=guild.members.me;
+  if(!me?.permissions.has(PermissionFlagsBits.ManageChannels))throw new Error('I need Manage Channels to configure tickets.');
+  let category=guild.channels.cache.find(c=>c.type===ChannelType.GuildCategory&&c.name==='🎫 Tickets');
+  if(!category)category=await guild.channels.create({name:'🎫 Tickets',type:ChannelType.GuildCategory,reason:'Lightcore ticket setup'});
+  let logs=guild.channels.cache.find(c=>c.type===ChannelType.GuildText&&c.name==='ticket-logs');
+  if(!logs)logs=await guild.channels.create({name:'ticket-logs',type:ChannelType.GuildText,reason:'Lightcore ticket setup'});
+  let transcripts=guild.channels.cache.find(c=>c.type===ChannelType.GuildText&&c.name==='ticket-transcripts');
+  if(!transcripts)transcripts=await guild.channels.create({name:'ticket-transcripts',type:ChannelType.GuildText,reason:'Lightcore ticket setup'});
+  updateTicketConfig(guild.id,{category_id:category.id,log_channel_id:logs.id,transcript_channel_id:transcripts.id,panel_channel_id:panelChannel?.id||null});
+  const cfg=getTicketConfig(guild.id);
+  if(!cfg.categories.length)addTicketCategory(guild.id,{key:'support',name:'Support',description:'General help and support',emoji:'🎫'});
+  return getTicketConfig(guild.id);
+}
