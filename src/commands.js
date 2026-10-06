@@ -77,6 +77,7 @@ export function makeCommand(name, category) {
   if (['antinuke','antinukestatus','antinukeconfig','antinukebypass','antinukereset'].includes(name)) {
     if (name === 'antinukeconfig') { textOption(b,'action'); textOption(b,'value'); }
     if (name === 'antinukebypass') { b.addUserOption(o=>o.setName('user').setDescription('Trusted member').setRequired(true)); textOption(b,'action'); }
+  }
   if (name === 'rolecreate') textOption(b,'name');
   if (name === 'roledelete') b.addRoleOption(o=>o.setName('role').setDescription('Role').setRequired(true));
   if (name === 'roleadd' || name === 'roleremove') { userOption(b); b.addRoleOption(o=>o.setName('role').setDescription('Role').setRequired(true)); }
