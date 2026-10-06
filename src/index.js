@@ -84,7 +84,14 @@ client.on('guildMemberAdd', async (member) => {
   await channel.send(cardMessage('👋 Welcome', renderWelcome(cfg.message, member))).catch(() => {});
 });
 
-client.on('guildMemberRemove', member => { if(!member.user.bot) recordLeave(member.guild.id,member.id); });\nclient.on('guildAuditLogEntryCreate', async (entry, guild) => {\n  if(!entry?.executorId || entry.executorId===client.user.id) return;\n  const labels={[AuditLogEvent.MemberKick]:'Kick',[AuditLogEvent.MemberBanAdd]:'Ban',[AuditLogEvent.MemberBanRemove]:'Unban'};\n  const action=labels[entry.action]; if(!action) return;\n  await logModerationAction(guild,{action,staff:{id:entry.executorId},target:entry.target?.user||entry.target||null,reason:entry.reason||'No reason recorded',extra:'Discord audit log'});\n});\n
+client.on('guildMemberRemove', member => { if(!member.user.bot) recordLeave(member.guild.id,member.id); });
+client.on('guildAuditLogEntryCreate', async (entry, guild) => {
+  if(!entry?.executorId || entry.executorId===client.user.id) return;
+  const labels={[AuditLogEvent.MemberKick]:'Kick',[AuditLogEvent.MemberBanAdd]:'Ban',[AuditLogEvent.MemberBanRemove]:'Unban'};
+  const action=labels[entry.action]; if(!action) return;
+  await logModerationAction(guild,{action,staff:{id:entry.executorId},target:entry.target?.user||entry.target||null,reason:entry.reason||'No reason recorded',extra:'Discord audit log'});
+});
+
 
 const levelCooldowns = new Map();
 
