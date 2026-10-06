@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import http from 'node:http';
 import { Client, GatewayIntentBits, Partials } from 'discord.js';
-import { handle, CATALOG, handleHelpInteraction } from './commands.js';
+import { handle, REGISTERED, handleHelpInteraction } from './commands.js';
 import { runAutoResponder, runAutoReactor } from './auto.js';
 import { hasNoPrefix } from './premium.js';
 
@@ -86,7 +86,7 @@ client.on('messageCreate', async (message) => {
   const commandText = explicitPrefix ? raw.slice(prefix.length).trim() : raw;
   const parts = commandText.split(/\s+/);
   const commandName = parts.shift()?.toLowerCase();
-  if (!commandName || !CATALOG.some(c => c.name === commandName)) return;
+  if (!commandName || !REGISTERED.some(c => c.name === commandName)) return;
   try { await handle(createMessageInteraction(message, commandName, parts), client); }
   catch (error) { console.error('Prefix/no-prefix command error:', error); await message.reply('💥 Something went wrong while running that command.').catch(() => {}); }
 });
