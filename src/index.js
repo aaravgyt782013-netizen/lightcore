@@ -204,6 +204,9 @@ function createMessageInteraction(message, commandName, args) {
       if (commandName === 'premium' || commandName === 'noprefix') value = keyed[name] ?? (name === 'days' ? positional[2] : positional.slice(1).join(' '));
       else if (commandName === 'antinukeconfig') value = keyed[name] ?? (name === 'action' ? positional[0] : positional[1]);
       else if (commandName === 'antinukebypass' || commandName === 'antinukewhitelist') value = keyed[name] ?? (name === 'action' ? positional[1] : positional[0]);
+      else if (commandName === 'levelsetup' || commandName === 'levelsettings') value = keyed[name] ?? (name === 'action' ? positional[0] : positional.slice(1).join(' '));
+      else if (commandName === 'giveawaycreate') value = keyed[name] ?? (name === 'duration' ? positional[0] : name === 'prize' ? positional.slice(1, -1).join(' ') || positional[1] : positional[0]);
+      else if (commandName === 'giveawayend' || commandName === 'giveawayreroll') value = keyed[name] ?? positional[0];
       else value = textValue(name);
       if (required && !value) return null;
       return value || null;
