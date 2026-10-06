@@ -39,7 +39,11 @@ export async function setupLogChannels(guild) {
     category = await guild.channels.create({
       name: CATEGORY_NAME,
       type: ChannelType.GuildCategory,
-      reason: 'Lightcore automatic logging setup'
+      permissionOverwrites: [
+        { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
+        { id: me.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.ManageChannels] }
+      ],
+      reason: 'Lightcore private logging setup'
     }).catch(() => null);
   }
 
@@ -61,11 +65,23 @@ export async function setupLogChannels(guild) {
         name,
         type: ChannelType.GuildText,
         parent: category.id,
-        reason: 'Lightcore automatic logging setup'
+        permissionOverwrites: [
+          { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
+          { id: me.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks, PermissionFlagsBits.ReadMessageHistory] }
+        ],
+        reason: 'Lightcore private logging setup'
       }).catch(() => null);
     }
 
     if (channel) created.push(channel);
+  }
+
+  // Repair privacy on existing LC logs categories/channels too.
+  await category.permissionOverwrites.edit(guild.roles.everyone, { ViewChannel: false }).catch(() => {});
+  await category.permissionOverwrites.edit(me.id, { ViewChannel: true, SendMessages: true, EmbedLinks: true, ReadMessageHistory: true }).catch(() => {});
+  for (const channel of created) {
+    await channel.permissionOverwrites.edit(guild.roles.everyone, { ViewChannel: false }).catch(() => {});
+    await channel.permissionOverwrites.edit(me.id, { ViewChannel: true, SendMessages: true, EmbedLinks: true, ReadMessageHistory: true }).catch(() => {});
   }
 
   const mod = created.find(c => c.name === 'mod-logs');
