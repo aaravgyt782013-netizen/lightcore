@@ -151,8 +151,8 @@ async function playNext(state) {
     state.resource = resource;
     state.player.play(resource);
 
-    await state.channel?.send(cardMessage('🎵 Music',
-      `🎵 Now playing **${track.title}** — ${track.author}\n<${track.url}>`
+    await state.channel?.send(
+      cardMessage('🎵 Music', `🎵 Now playing **${track.title}** — ${track.author}\n<${track.url}>`)
     ).catch(() => {});
   } catch (error) {
     console.error('[music] stream:', error);
