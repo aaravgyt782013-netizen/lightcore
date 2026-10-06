@@ -35,7 +35,7 @@ function buildHelpPayload(selectedCategory = 'overview') {
   } else {
     const names = groups[selectedCategory] || [];
     description = names.length
-      ? names.map(name => `**/${name}**  •  `.${name}`  •  `${name}``).join('\\n')
+      ? names.map(name => `**/${name}**  •  .${name}  •  ${name}`).join('\\\\n')
       : 'No commands are listed in this category.';
   }
 
