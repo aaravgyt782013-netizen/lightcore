@@ -4,6 +4,7 @@ import { Client, GatewayIntentBits, Partials } from 'discord.js';
 import { handle, REGISTERED, handleHelpInteraction } from './commands.js';
 import { runAutoResponder, runAutoReactor } from './auto.js';
 import { hasNoPrefix } from './premium.js';
+import { getWelcome } from './server-config.js';
 
 const token = process.env.DISCORD_TOKEN;
 const port = Number(process.env.PORT || 3000);
@@ -18,6 +19,35 @@ const client = new Client({
 });
 
 client.once('ready', () => console.log('Lightcore 5.0.0 online as ' + client.user.tag));
+
+function renderWelcome(template, member) {
+  return String(template || 'Welcome {user} to **{server}**! 🎉')
+    .replaceAll('{user}', '<@'+member.id+'>')
+    .replaceAll('{username}', member.user.username)
+    .replaceAll('{server}', member.guild.name)
+    .replaceAll('{membercount}', String(member.guild.memberCount))
+    .replaceAll('{id}', member.id);
+}
+
+client.on('guildMemberAdd', async (member) => {
+  if (member.user.bot) return;
+  const cfg = getWelcome(member.guild.id);
+  if (!cfg.channelId) return;
+  const channel = member.guild.channels.cache.get(cfg.channelId) || await member.guild.channels.fetch(cfg.channelId).catch(() => null);
+  if (!channel?.isTextBased()) return;
+  await channel.send(renderWelcome(cfg.message, member)).catch(() => {});
+});
+
+client.on('guildDelete', async (guild) => {
+  const support = process.env.SUPPORT_URL || 'our support server';
+  let target = null;
+  try { target = await client.users.fetch(guild.ownerId); } catch {}
+  if (!target) {
+    target = guild.members.cache.find(m => m.permissions?.has('Administrator') || m.permissions?.has('ManageGuild'))?.user || null;
+  }
+  if (!target) return;
+  await target.send('⚠️ **Lightcore was removed from '+guild.name+'**.\nIt looks like the bot was kicked or otherwise removed from this server. Please review the setup and contact us on the Lightcore support server: '+support).catch(() => {});
+});
 
 client.on('interactionCreate', async (interaction) => {
   if (interaction.isButton() || interaction.isStringSelectMenu()) {
