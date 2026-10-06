@@ -8,6 +8,8 @@ import { runAutoResponder, runAutoReactor } from './auto.js';
 import { hasNoPrefix } from './premium.js';
 import { getWelcome } from './server-config.js';
 import { cardMessage, styledReply } from './ui.js';
+import { AuditLogEvent, PermissionFlagsBits } from 'discord.js';
+import { antiNukeCheck, isAntiNukeBypassed } from './antinuke.js';
 
 const token = process.env.DISCORD_TOKEN;
 const port = Number(process.env.PORT || 3000);
@@ -34,6 +36,20 @@ function renderWelcome(template, member) {
     .replaceAll('{id}', member.id);
 }
 
+async function enforceAntiNuke(guild, auditType, eventKey, targetId) {
+  const logs=await guild.fetchAuditLogs({type:auditType,limit:5}).catch(()=>null);
+  const entry=logs?.entries.find(e=>e.target?.id===targetId&&Date.now()-e.createdTimestamp<8000);
+  if(!entry?.executorId||entry.executorId===client.user.id)return;
+  if(entry.executorId===guild.ownerId||isAntiNukeBypassed(guild.id,entry.executorId))return;
+  const result=antiNukeCheck(guild.id,entry.executorId,eventKey); if(!result.triggered)return;
+  const member=await guild.members.fetch(entry.executorId).catch(()=>null); if(!member||member.id===guild.ownerId)return;
+  try {
+    if(result.config.action==='ban')await member.ban({deleteMessageSeconds:0,reason:'Lightcore Anti-Nuke: excessive '+eventKey+' actions'});
+    else if(result.config.action==='kick')await member.kick('Lightcore Anti-Nuke: excessive '+eventKey+' actions');
+    else { for(const role of member.roles.cache.values()){ if(role.editable&&(role.permissions.has(PermissionFlagsBits.Administrator)||role.permissions.has(PermissionFlagsBits.ManageGuild)))await member.roles.remove(role,'Lightcore Anti-Nuke: excessive '+eventKey+' actions').catch(()=>{}); } }
+    await sendConfiguredLog(guild,'Anti-Nuke Triggered','<@'+member.id+'> triggered '+eventKey+' protection after '+result.count+' actions. Response: '+result.config.action+'.');
+  } catch(error){console.error('[antinuke] enforcement failed:',error);}
+}
 client.on('guildMemberAdd', async (member) => {
   recordJoin(member.guild.id, member.id);
   if (member.user.bot) return;
@@ -56,6 +72,11 @@ client.on('voiceStateUpdate', (oldState,newState) => {
 
 async function sendConfiguredLog(guild,event,text){const cfg=getLogConfig(guild.id);if(!cfg?.channel_id)return;const ch=guild.channels.cache.get(cfg.channel_id);if(ch?.isTextBased())await ch.send(cardMessage('📜 '+event,text)).catch(()=>{});}
 
+client.on('channelCreate',ch=>{if(ch.guild)enforceAntiNuke(ch.guild,AuditLogEvent.ChannelCreate,'channel_create',ch.id);});
+client.on('channelDelete',ch=>{if(ch.guild)enforceAntiNuke(ch.guild,AuditLogEvent.ChannelDelete,'channel_delete',ch.id);});
+client.on('roleCreate',role=>enforceAntiNuke(role.guild,AuditLogEvent.RoleCreate,'role_create',role.id));
+client.on('roleDelete',role=>enforceAntiNuke(role.guild,AuditLogEvent.RoleDelete,'role_delete',role.id));
+client.on('guildBanAdd',ban=>enforceAntiNuke(ban.guild,AuditLogEvent.MemberBanAdd,'ban_create',ban.user.id));
 client.on('guildDelete', async (guild) => {
   const support = process.env.SUPPORT_URL || supportUrl;
   let target = null;
