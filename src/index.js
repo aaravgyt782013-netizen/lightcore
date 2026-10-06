@@ -144,14 +144,6 @@ client.on('guildDelete', async (guild) => {
 });
 
 client.on('interactionCreate', async (interaction) => {
-  if (interaction.isAutocomplete() && interaction.commandName === 'lc') {
-    const query = String(interaction.options.getString('command') || '').toLowerCase();
-    const choices = REGISTERED
-      .filter(c => c.name !== 'lc' && c.name.includes(query))
-      .slice(0, 25)
-      .map(c => ({ name: c.name + ' · ' + c.category, value: c.name }));
-    return interaction.respond(choices).catch(() => {});
-  }
   if (interaction.isButton() && interaction.customId.startsWith('giveaway:enter:')) {
     const id=interaction.customId.split(':')[2];
     const result=enterGiveaway(id,interaction.user.id);
@@ -170,28 +162,6 @@ client.on('interactionCreate', async (interaction) => {
   }
   if (!interaction.isChatInputCommand()) return;
   try {
-    if (interaction.commandName === 'lc') {
-      const target = String(interaction.options.getString('command') || '').toLowerCase();
-      if (!target || target === 'lc' || !REGISTERED.some(c => c.name === target)) {
-        return interaction.reply(commandUsagePayload('lc', 'Choose a valid Lightcore command from the autocomplete list.'));
-      }
-      const rawArgs = interaction.options.getString('args') || '';
-      const args = rawArgs.match(/(?:[^\\s"']+|"[^"]*"|'[^']*')+/g)?.map(x => x.replace(/^["']|["']$/g, '')) || [];
-      const pseudo = createMessageInteraction({
-        author: interaction.user,
-        member: interaction.member,
-        guild: interaction.guild,
-        guildId: interaction.guildId,
-        channel: interaction.channel,
-        reply: payload => interaction.reply(payload),
-      }, target, args);
-      pseudo.reply = payload => interaction.reply(payload);
-      pseudo.followUp = payload => interaction.followUp(payload);
-      pseudo.guildId = interaction.guildId;
-      recordCommand(interaction.guildId || 'dm', interaction.user.id);
-      await handle(pseudo, client);
-      return;
-    }
     await handle(interaction, client);
   }
   catch (error) {
