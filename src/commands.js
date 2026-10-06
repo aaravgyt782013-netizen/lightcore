@@ -199,9 +199,6 @@ export function makeCommand(name, category) {
     b.addSubcommand(s=>s.setName('status').setDescription('Check access').addUserOption(o=>o.setName('user').setDescription('User').setRequired(true)));
     if (name === 'premium') b.addSubcommand(s=>s.setName('list').setDescription('List premium grants'));
   }
-  if (['moderation','administration','automod','logging','welcome','tickets'].includes(category)) b.setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild.toString());
-  if (['ban','unban','kick','timeout','untimeout','warn','clearwarnings','purge','slowmode','lock','unlock','nick'].includes(name)) b.setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers.toString());
-  if (category === 'owner') b.setDefaultMemberPermissions(PermissionFlagsBits.Administrator.toString());
   return b;
 }
 
