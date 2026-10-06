@@ -84,7 +84,14 @@ const commandPermissions = {
   premium: PermissionFlagsBits.Administrator, noprefix: PermissionFlagsBits.Administrator
 };
 
-export function getCommandPermission(name) { return commandPermissions[name] || null; }
+export function getCommandPermission(name) {
+  if (Object.prototype.hasOwnProperty.call(commandPermissions, name)) return commandPermissions[name];
+  const category = REGISTERED.find(x => x.name === name)?.category;
+  if (category === 'owner') return PermissionFlagsBits.Administrator;
+  if (['moderation','administration','automod','logging','welcome'].includes(category)) return PermissionFlagsBits.ManageGuild;
+  if (category === 'tickets' && !['ticket','ticketadd','ticketremove','ticketclaim','ticketunclaim'].includes(name)) return PermissionFlagsBits.ManageGuild;
+  return null;
+}
 
 function permissionName(bit) {
   const names = {
@@ -99,13 +106,28 @@ function permissionName(bit) {
 
 export function getCommandUsage(name) {
   const examples = {
-    levelsetup: '.levelsetup action:on', levelsettings: '.levelsettings action:message value:"🎉 {user} reached Level {level}!"',
-    levelreward: '.levelreward level:5 role:@VIP', rank: '.rank user:@Member',
-    giveawaycreate: '.giveawaycreate duration:1h prize:"VIP Rank" winners:1', giveawayend: '.giveawayend id:123',
-    giveawayreroll: '.giveawayreroll id:123', gay: '.gay user:@Member', simp: '.simp user:@Member',
-    howhot: '.howhot user:@Member', logsetupauto: '.logsetupauto'
+    levelsetup: '/levelsetup action:on',
+    levelsettings: '/levelsettings action:message value:"🎉 {user} reached Level {level}!"',
+    levelreward: '/levelreward level:5 role:@VIP',
+    rank: '/rank user:@Member',
+    giveawaycreate: '/giveawaycreate duration:1h prize:"VIP Rank" winners:1',
+    giveawayend: '/giveawayend id:123',
+    giveawayreroll: '/giveawayreroll id:123',
+    gay: '/gay user:@Member',
+    simp: '/simp user:@Member',
+    howhot: '/howhot user:@Member',
+    logsetupauto: '/logsetupauto'
   };
-  return examples[name] || '.'+name+' [required options]';
+  if (examples[name]) return examples[name];
+  try {
+    const category = REGISTERED.find(x => x.name === name)?.category || 'utility';
+    const data = makeCommand(name, category).toJSON();
+    const options = (data.options || []).filter(x => x.type !== 1 && x.type !== 2);
+    const args = options.map(x => x.required ? '<'+x.name+'>' : '['+x.name+']').join(' ');
+    return '/'+name+(args ? ' '+args : '');
+  } catch {
+    return '/'+name;
+  }
 }
 
 export function commandUsagePayload(name, reason='Check the required options and try again.') {
