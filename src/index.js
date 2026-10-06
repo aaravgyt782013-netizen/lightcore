@@ -41,18 +41,25 @@ client.on('interactionCreate', async (interaction) => {
 
 function createMessageInteraction(message, commandName, args) {
   const options = {
+    getSubcommand: (_required = false) => {
+      if (commandName === 'premium' || commandName === 'noprefix') return args[0]?.toLowerCase() || null;
+      return null;
+    },
     getUser: () => {
-      const token = args[0];
+      const token = (commandName === 'premium' || commandName === 'noprefix') ? args[1] : args[0];
       const id = token?.match(/^<@!?([0-9]+)>$/)?.[1] || token?.match(/^\d{17,20}$/)?.[0] || null;
       return id ? client.users.cache.get(id) || null : null;
     },
     getString: (_name, required = false) => {
-      const value = args.join(' ').trim();
+      const value = (commandName === 'premium' || commandName === 'noprefix')
+        ? args.slice(1).join(' ').trim()
+        : args.join(' ').trim();
       if (required && !value) return null;
       return value || null;
     },
     getInteger: (_name, required = false) => {
-      const n = Number(args[0]);
+      const value = (commandName === 'premium' || commandName === 'noprefix') ? args[2] : args[0];
+      const n = Number(value);
       if (required && !Number.isFinite(n)) return null;
       return Number.isFinite(n) ? n : null;
     },
