@@ -1,22 +1,23 @@
 {
   "name": "lightcore",
-  "version": "4.4.1",
+  "version": "4.4.2",
   "private": true,
   "type": "module",
   "scripts": {
     "start": "node src/index.js",
-    "build": "npm install --omit=dev && node --check src/index.js && node --check src/auto.js",
+    "build": "npm install --omit=dev && node --check src/index.js && node --check src/auto.js && node --check src/music.js && node --check src/commands.js && node --check src/deploy-commands.js",
     "deploy": "node src/deploy-commands.js"
   },
   "engines": {
     "node": ">=24.17.0 <27.0.0"
   },
   "dependencies": {
-    "@discordjs/voice": "^0.19.0",
+    "@discordjs/voice": "0.19.2",
     "better-sqlite3": "^12.4.1",
     "discord.js": "14.27.0",
     "dotenv": "^17.2.2",
     "ffmpeg-static": "^5.2.0",
-    "google-tts-api": "^2.0.2"
+    "google-tts-api": "^2.0.2",
+    "youtubei.js": "18.1.0"
   }
 }
