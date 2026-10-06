@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "node src/index.js",
-    "build": "npm install --omit=dev && node --check src/index.js && node --check src/auto.js && node --check src/music.js && node --check src/commands.js && node --check src/deploy-commands.js",
+    "build": "npm install --omit=dev && node --check src/index.js && node --check src/ui.js && node --check src/auto.js && node --check src/music.js && node --check src/stats.js && node --check src/logs.js && node --check src/tickets.js && node --check src/premium.js && node --check src/server-config.js && node --check src/commands.js && node --check src/deploy-commands.js",
     "deploy": "node src/deploy-commands.js"
   },
   "engines": {
