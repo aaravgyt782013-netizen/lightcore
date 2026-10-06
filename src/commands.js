@@ -109,7 +109,7 @@ function buildHelpPayload(selectedCategory = 'overview') {
       const names = groups[cat];
       embed.addFields({
         name: `${categoryEmoji[cat] || '🔹'} ${cat.charAt(0).toUpperCase() + cat.slice(1)} • ${names.length}`,
-        value: names.slice(0, 12).map(name => `\\`/${name}\\``).join(' • ') + (names.length > 12 ? ' • …' : ''),
+        value: names.slice(0, 12).map(name => '**/' + name + '**').join(' • ') + (names.length > 12 ? ' • …' : ''),
         inline: false
       });
     }
