@@ -19,7 +19,7 @@ export async function logModerationAction(guild,{action,staff,target,reason='No 
  await ch.send(payload('Moderation Log',lines.join('\\n'))).catch(()=>{});
 }
 export async function logAntiNukeKick(guild,member,actorId,reason,inviteUrl){
- const ch=guild.channels.cache.find(x=>x.isTextBased?.()&&x.name==='lightcore-antinuke-actions');
+ const ch=guild.channels.cache.find(x=>x.isTextBased?.()&&x.name==='antinuke-logs');
  if(!ch) return;
  const thumb=new ThumbnailBuilder({media:{url:member.user.displayAvatarURL({size:256,extension:'png'})}}).setDescription('Kicked member profile picture');
  const section=new SectionBuilder().addTextDisplayComponents(new TextDisplayBuilder().setContent('## 🚨 Anti-Nuke Member Kicked')).setThumbnailAccessory(thumb);
