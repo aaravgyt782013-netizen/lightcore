@@ -230,7 +230,6 @@ client.on('interactionCreate', async (interaction) => {
       return;
     }
     try {
-      if (await handleCategoryDeleteInteraction(interaction)) return;
       if (await handleHelpInteraction(interaction, client)) return;
       if (await handleTicketInteraction(interaction, client)) return;
     } catch (error) {
