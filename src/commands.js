@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, PermissionFlagsBits, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, ContainerBuilder, TextDisplayBuilder, MessageFlags } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js';
 import { playMusic, pauseMusic, resumeMusic, skipMusic, stopMusic, getQueue } from './music.js';
 import { grantPremium, revokePremium, listPremium, premiumExpiry, grantNoPrefix, revokeNoPrefix, hasNoPrefix, isPremium } from './premium.js';
 
@@ -73,8 +73,8 @@ const COMMAND_DESCRIPTIONS = {
   welcome: 'Configure welcome messages',
   invite: 'Create or view the bot invite',
   support: 'Get Lightcore support information',
-  premium: 'Manage Lightcore premium access',
-  noprefix: 'Manage premium no-prefix access'
+  premium: '👑 Owner only — grant, revoke, check or list Premium',
+  noprefix: '👑 Owner only — grant or revoke no-prefix access'
 };
 
 function commandDescription(name) {
@@ -83,74 +83,94 @@ function commandDescription(name) {
 
 function buildHelpPayload(selectedCategory = 'overview') {
   const groups = {};
-  for (const item of CATALOG) (groups[item.category] ||= []).push(item.name);
+  for (const item of REGISTERED) (groups[item.category] ||= []).push(item.name);
 
-  const title = selectedCategory === 'overview'
-    ? '⚡ **LIGHTCORE**'
-    : `${categoryEmoji[selectedCategory] || '🔹'} **${selectedCategory.toUpperCase()} COMMANDS**`;
+  const categoryNames = Object.keys(groups);
+  const safeCategory = selectedCategory === 'overview' || groups[selectedCategory]
+    ? selectedCategory
+    : 'overview';
 
-  let lines;
-  if (selectedCategory === 'overview') {
-    lines = [
-      title,
-      '',
-      `📦 **${CATALOG.length}** commands in the full catalog`,
-      `⚡ **${REGISTERED.length}** slash commands available`,
-      '',
-      '**Select a category below.**',
-      '',
-      ...Object.entries(groups).map(([cat, names]) =>
-        `${categoryEmoji[cat] || '🔹'} **${cat.charAt(0).toUpperCase() + cat.slice(1)}** · ${names.length} commands`
-      )
-    ];
+  const title = safeCategory === 'overview'
+    ? '⚡ LIGHTCORE • HELP'
+    : `${categoryEmoji[safeCategory] || '🔹'} LIGHTCORE • ${safeCategory.toUpperCase()}`;
+
+  const embed = new EmbedBuilder()
+    .setColor(0x5865F2)
+    .setTitle(title)
+    .setFooter({ text: `Lightcore • ${REGISTERED.length} registered slash commands` })
+    .setTimestamp();
+
+  if (safeCategory === 'overview') {
+    embed.setDescription(
+      'A powerful all-in-one Discord bot for moderation, utility, music, tickets, economy and more.\\n\\n' +
+      '**Choose a category below** to browse the commands available in this launch build.'
+    );
+    for (const cat of categoryNames) {
+      const names = groups[cat];
+      embed.addFields({
+        name: `${categoryEmoji[cat] || '🔹'} ${cat.charAt(0).toUpperCase() + cat.slice(1)} • ${names.length}`,
+        value: names.slice(0, 12).map(name => `\\`/${name}\\``).join(' • ') + (names.length > 12 ? ' • …' : ''),
+        inline: false
+      });
+    }
   } else {
-    const names = groups[selectedCategory] || [];
-    lines = [
-      title,
-      '',
+    const names = groups[safeCategory] || [];
+    embed.setDescription(
       names.length
-        ? names.map(name => `• **/${name}** — ${commandDescription(name)}`).join('\n')
-        : 'No commands are listed in this category.'
-    ];
+        ? names.map(name => `• **/${name}** — ${commandDescription(name)}`).join('\\n')
+        : 'No registered commands are available in this category.'
+    );
   }
+
+  const options = [
+    { label: '🏠 Overview', value: 'overview', description: 'Show the main Lightcore help page' },
+    ...categoryNames.slice(0, 24).map(cat => ({
+      label: `${categoryEmoji[cat] || '🔹'} ${cat.charAt(0).toUpperCase() + cat.slice(1)}`.slice(0, 100),
+      value: cat,
+      description: `${groups[cat].length} registered command${groups[cat].length === 1 ? '' : 's'}`.slice(0, 100)
+    }))
+  ];
 
   const select = new StringSelectMenuBuilder()
     .setCustomId('lightcore_help:category')
     .setPlaceholder('📚 Select a command category')
-    .addOptions([
-      { label: '🏠 Overview', value: 'overview', description: 'Show all command categories' },
-      ...Object.keys(groups).slice(0, 24).map(cat => ({
-        label: `${categoryEmoji[cat] || '🔹'} ${cat.charAt(0).toUpperCase() + cat.slice(1)}`.slice(0, 100),
-        value: cat,
-        description: `${groups[cat].length} commands`.slice(0, 100)
-      }))
-    ]);
+    .addOptions(options);
 
   const buttons = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId('lightcore_help:home').setLabel('Home').setEmoji('🏠').setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId('lightcore_help:ping').setLabel('Ping').setEmoji('🏓').setStyle(ButtonStyle.Primary)
+    new ButtonBuilder()
+      .setCustomId('lightcore_help:home')
+      .setLabel('Home')
+      .setEmoji('🏠')
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId('lightcore_help:ping')
+      .setLabel('Ping')
+      .setEmoji('🏓')
+      .setStyle(ButtonStyle.Primary)
   );
 
-  const container = new ContainerBuilder()
-    .setAccentColor(0x5865F2);
-
-  for (const chunk of lines.join('\n').match(/.{1,3800}(?:\\n|$)/gs) || [lines.join('\n')]) {
-    container.addTextDisplayComponents(new TextDisplayBuilder().setContent(chunk));
-  }
-  container.addActionRowComponents(new ActionRowBuilder().addComponents(select));
-  container.addActionRowComponents(buttons);
-
-  return { components: [container], flags: MessageFlags.IsComponentsV2 };
+  return {
+    embeds: [embed],
+    components: [
+      new ActionRowBuilder().addComponents(select),
+      buttons
+    ]
+  };
 }
 
 async function handleHelpInteraction(interaction, client) {
   if (!interaction.isStringSelectMenu() && !interaction.isButton()) return false;
   if (!interaction.customId.startsWith('lightcore_help:')) return false;
+
   if (interaction.customId === 'lightcore_help:ping') {
     await interaction.reply({ content: `🏓 Pong! **${client.ws.ping}ms**`, ephemeral: true });
     return true;
   }
-  const category = interaction.isStringSelectMenu() ? interaction.values[0] : 'overview';
+
+  const category = interaction.isStringSelectMenu()
+    ? interaction.values[0]
+    : 'overview';
+
   await interaction.update(buildHelpPayload(category));
   return true;
 }
