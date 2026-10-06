@@ -9,7 +9,7 @@ import { getWelcome } from './server-config.js';
 const token = process.env.DISCORD_TOKEN;
 const port = Number(process.env.PORT || 3000);
 const host = process.env.HOST || '0.0.0.0';
-const prefix = process.env.PREFIX || '.';
+const prefix = '.';
 
 if (!token) { console.error('DISCORD_TOKEN is missing.'); process.exit(1); }
 
