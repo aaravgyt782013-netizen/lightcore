@@ -1,6 +1,9 @@
 import Database from 'better-sqlite3';
 
-const db = new Database(process.env.PREMIUM_DB_PATH || 'lightcore.sqlite');
+// Keep premium data in the same SQLite file used by the rest of Lightcore.
+// LIGHTCORE_DB_PATH is the canonical setting; PREMIUM_DB_PATH remains a
+// backwards-compatible fallback for existing deployments.
+const db = new Database(process.env.LIGHTCORE_DB_PATH || process.env.PREMIUM_DB_PATH || 'lightcore.sqlite');
 db.pragma('journal_mode = WAL');
 
 db.exec(`
