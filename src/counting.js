@@ -26,7 +26,7 @@ export function getCountingConfig(guildId) {
 
 export function configureCounting(guildId, channelId) {
   db.prepare(`INSERT INTO counting_config(guild_id, channel_id) VALUES(?, ?)
-    ON CONFLICT(guild_id) DO UPDATE SET channel_id=excluded.channel_id`)
+    ON CONFLICT(guild_id) DO UPDATE SET channel_id=excluded.channel_id, current_count=0, last_user_id=NULL`)
     .run(String(guildId), String(channelId));
   return getCountingConfig(guildId);
 }
