@@ -13,6 +13,7 @@ import { AuditLogEvent, PermissionFlagsBits } from 'discord.js';
 import { antiNukeCheck, isAntiNukeBypassed } from './antinuke.js';
 import { getLevelConfig, addXP, getLevelRewards, replacePlaceholders } from './leveling.js';
 import { dueGiveaways, endGiveaway, giveawayPayload, enterGiveaway } from './giveaways.js';
+import { processCountingMessage } from './counting.js';
 
 const token = process.env.DISCORD_TOKEN;
 const port = Number(process.env.PORT || 3000);
@@ -326,6 +327,7 @@ client.on('messageCreate', async (message) => {
   await Promise.allSettled([runAutoResponder(message), runAutoReactor(message)]);
   const raw = message.content.trim();
   if (!raw) return;
+  if (await processCountingMessage(message, prefix)) return;
   const explicitPrefix = raw.startsWith(prefix);
   const noPrefixAllowed = hasNoPrefix(message.author.id, message.guildId);
   if (!explicitPrefix && !noPrefixAllowed) return;
