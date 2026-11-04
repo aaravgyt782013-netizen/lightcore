@@ -24,6 +24,6 @@ export async function handlePrefixMessage(message: Message): Promise<void> {
   }
   if (name === "say" && message.author.id === config.OWNER_ID) {
     const text = args.join(" ").slice(0, 1800);
-    if (text) await message.channel.send({ content: text, allowedMentions: { parse: [] } });
+    if (text && message.channel.isSendable()) await message.channel.send({ content: text, allowedMentions: { parse: [] } });
   }
 }
