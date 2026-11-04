@@ -4,12 +4,15 @@
   "private": true,
   "description": "Light Code — modular multi-server Discord bot",
   "license": "UNLICENSED",
-  "engines": { "node": ">=22.0.0" },
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "deploy:commands": "tsx scripts/deploy-commands.ts"
   },
   "dependencies": {
     "discord.js": "^14.22.1",
