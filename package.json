@@ -1,0 +1,24 @@
+{
+  "name": "light-code",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Light Code — modular multi-server Discord bot",
+  "license": "UNLICENSED",
+  "engines": { "node": ">=22.0.0" },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "discord.js": "^14.22.1",
+    "dotenv": "^16.6.1",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}
