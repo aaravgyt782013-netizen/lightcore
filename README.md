@@ -1,52 +1,36 @@
 # Light Code
 
-A modular, multi-server Discord bot and web dashboard.
+A modular multi-server Discord bot foundation. Product identity: **Light Code**, red/white dashboard direction with restrained red/gold loading accents.
 
-## Product identity
-- Bot name: **Light Code**
-- Dashboard: **red + white**, with restrained gold accents for loading/progress states
-- Runtime: TypeScript + Discord.js
-- Discord UI: Components V2 where supported by the installed Discord.js version
-- Database: PostgreSQL + Prisma (planned phase; not enabled yet)
+## Stack
+- Node.js 22+, TypeScript, Discord.js 14
+- Discord Components V2 for supported slash-command responses
+- PostgreSQL/Prisma, Redis/BullMQ and the web dashboard are planned integrations, not active in this starter build.
 
-## Current implementation
-- Typed slash-command contract and command registry
-- Interaction event handler with safe user-facing error responses
-- Components V2 `/ping` command showing gateway and response latency
-- Components V2 ephemeral `/help` command
-- Slash-command publishing script
-- Environment validation and graceful process shutdown
-
-## Requirements
-- Node.js 22 or newer
-- A Discord application and bot token
-- Enable the **Server Members Intent** and **Message Content Intent** in the Discord Developer Portal only if/when your enabled modules need them
+## Current implemented scope
+- Environment validation with Zod and graceful shutdown
+- Configurable bot presence and default prefix
+- Slash commands: `/ping`, `/help`
+- Prefix commands: `!ping`, `!help` (or your configured prefix)
+- Owner-only prefix `say` utility
+- Interaction error handling and slash-command deployment script
+- GitHub Actions typecheck/build workflow
 
 ## Setup
-1. Copy `.env.example` to `.env`.
-2. Fill in `BOT_TOKEN`, `CLIENT_ID`, and `OWNER_ID`.
-3. Install dependencies with `npm install`.
-4. Publish slash commands with `npm run deploy:commands`.
-5. Start in development with `npm run dev`, or compile with `npm run build` and run `npm start`.
+1. Install Node.js 22 or newer.
+2. Copy `.env.example` to `.env`.
+3. Fill `BOT_TOKEN`, `CLIENT_ID`, and `OWNER_ID`.
+4. Run `npm install`.
+5. Run `npm run deploy:commands` to publish slash commands.
+6. Run `npm run dev`, or `npm run build && npm start`.
 
-Never commit `.env`, bot tokens, client secrets, database passwords, or session secrets.
+For prefix commands, enable **Message Content Intent** in the Discord Developer Portal and invite the bot with the required message permissions. Enable Server Members Intent only when a module actually needs it.
 
-## Scripts
-- `npm run dev` — development runtime
-- `npm run build` — TypeScript build
-- `npm start` — run compiled bot
-- `npm run typecheck` — type-check without emitting files
-- `npm run deploy:commands` — publish the registered slash commands globally
+## Central configuration
+Important values are in `.env`: `DEFAULT_PREFIX`, `BOT_STATUS`, `BOT_ACTIVITY_TYPE`, `BOT_ACTIVITY_TEXT`, `OWNER_ID`, dashboard/session settings, and the Lavalink connection fields (`LAVALINK_HOST`, `LAVALINK_PORT`, `LAVALINK_PASSWORD`, `LAVALINK_SECURE`). Music transport is **not implemented yet**; Lavalink values are configuration placeholders for that future module. Do not paste secrets into Discord or commit `.env`.
+
+## Verification and honest status
+This repository has not been run against a real Discord application from this environment. CI is configured to install dependencies, type-check and build on GitHub Actions; inspect the Actions result after pushing. A successful build does not replace live permission, gateway, database or music-provider testing.
 
 ## Roadmap
-1. Core configuration, startup, logging and graceful shutdown — foundation in place
-2. Slash commands, events, permissions and Discord Components V2 — starter implementation in place
-3. PostgreSQL/Prisma multi-guild configuration
-4. Moderation, tickets, automations and remaining bot modules
-5. Red/white dashboard with animated loading states and developer controls
-
-## Emoji and animation policy
-The UI will support Unicode emoji, server custom emoji, animated emoji and GIF assets where Discord permissions and API rules allow them. Dashboard loading animations will be implemented in CSS; no third-party icon or emoji assets will be copied without a suitable licence.
-
-## Verification status
-The source files have been committed to GitHub. A dependency install, TypeScript build, Discord login, and live slash-command test have **not** been run from this environment. Run the scripts above in your own Node.js environment and review any errors before deployment.
+The full moderation suite, anti-raid/anti-nuke, tickets, welcome/roles, temp voice, leveling/economy, music player, Minecraft status, multi-guild database and red/white dashboard are **not yet implemented**. They must be delivered and tested in modules; this starter release must not be treated as a complete production bot.
