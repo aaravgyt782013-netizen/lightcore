@@ -6,6 +6,7 @@ import {
 } from "discord.js";
 import { config } from "./config/env.js";
 import { handleInteraction } from "./events/interactionCreate.js";
+import { handlePrefixMessage } from "./events/messageCreate.js";
 
 const activityTypes = {
   Playing: ActivityType.Playing,
@@ -29,20 +30,20 @@ const client = new Client({
 client.once("ready", (readyClient) => {
   readyClient.user.setPresence({
     status: config.BOT_STATUS,
-    activities: [{
-      name: config.BOT_ACTIVITY_TEXT,
-      type: activityTypes[config.BOT_ACTIVITY_TYPE]
-    }]
+    activities: [{ name: config.BOT_ACTIVITY_TEXT, type: activityTypes[config.BOT_ACTIVITY_TYPE] }]
   });
-
   console.info(`[Light Code] Logged in as ${readyClient.user.tag}`);
   console.info(`[Light Code] Serving ${readyClient.guilds.cache.size} guild(s)`);
+  console.info(`[Light Code] Prefix: ${config.DEFAULT_PREFIX}`);
+  if (config.MUSIC_ENABLED === "true" && (!config.LAVALINK_HOST || !config.LAVALINK_PASSWORD)) {
+    console.warn("[Light Code] Music is enabled but Lavalink host/password are missing; music will not connect.");
+  }
 });
 
-client.on("interactionCreate", (interaction) => {
-  void handleInteraction(client, interaction);
+client.on("interactionCreate", (interaction) => { void handleInteraction(client, interaction); });
+client.on("messageCreate", (message) => {
+  void handlePrefixMessage(message).catch((error: unknown) => console.error("[Light Code] Prefix command failed:", error));
 });
-
 client.on("warn", (message) => console.warn("[Discord warning]", message));
 client.on("error", (error) => console.error("[Discord client error]", error));
 
@@ -54,7 +55,6 @@ const shutdown = async (signal: string) => {
   client.destroy();
   process.exit(0);
 };
-
 process.once("SIGINT", () => void shutdown("SIGINT"));
 process.once("SIGTERM", () => void shutdown("SIGTERM"));
 
