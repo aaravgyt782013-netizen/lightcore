@@ -5,6 +5,7 @@ import {
   Partials
 } from "discord.js";
 import { config } from "./config/env.js";
+import { handleInteraction } from "./events/interactionCreate.js";
 
 const activityTypes = {
   Playing: ActivityType.Playing,
@@ -36,6 +37,10 @@ client.once("ready", (readyClient) => {
 
   console.info(`[Light Code] Logged in as ${readyClient.user.tag}`);
   console.info(`[Light Code] Serving ${readyClient.guilds.cache.size} guild(s)`);
+});
+
+client.on("interactionCreate", (interaction) => {
+  void handleInteraction(client, interaction);
 });
 
 client.on("warn", (message) => console.warn("[Discord warning]", message));
