@@ -1,6 +1,13 @@
-import type { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
+import type {
+  ChatInputCommandInteraction,
+  PermissionResolvable,
+  SlashCommandBuilder
+} from "discord.js";
 
 export interface BotCommand {
   data: SlashCommandBuilder;
   execute(interaction: ChatInputCommandInteraction): Promise<void>;
+  ownerOnly?: boolean;
+  guildOnly?: boolean;
+  requiredPermissions?: PermissionResolvable;
 }
