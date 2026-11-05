@@ -20,7 +20,7 @@ async function replySafely(
   interaction: ChatInputCommandInteraction | ButtonInteraction,
   content: string
 ): Promise<void> {
-  const payload = { content, flags: MessageFlags.Ephemeral };
+  const payload = { content, flags: MessageFlags.Ephemeral as const };
 
   if (interaction.deferred || interaction.replied) {
     await interaction.followUp(payload).catch((error: unknown) => {
